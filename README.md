@@ -1,50 +1,32 @@
-# Legal Document Search UI
+# Legal RAG UI
 
-A Streamlit application for legal document search with FastAPI RAG backend integration.
-
-## Features
-
-- **Document Search**: Predefined queries and custom search with client filtering
-- **Document Viewer**: Full document viewing with navigation
-- **FastAPI Integration**: Ready for containerized RAG backend services
+Streamlit interface for searching legal documents using AI-powered retrieval.
 
 ## Quick Start
 
-1. Install dependencies:
-```bash
-uv sync
-```
-
-2. Run the application:
 ```bash
 uv run streamlit run app.py
 ```
 
-## Backend Integration
+Open http://localhost:8501 to use the application.
 
-The UI connects to a FastAPI RAG service with these endpoints:
+## Features
 
-- `GET /queries` - Get predefined queries
-- `GET /clients` - Get available clients  
-- `POST /search` - Search documents (payload: `{"query": "...", "client_filter": "..."}`)
-- `GET /documents/{id}` - Get full document
-
-Update `backend/config.py` with your FastAPI service URL:
-```python
-API_BASE_URL = "http://localhost:8000"  # Your FastAPI service
-API_KEY = "your-api-key"               # Optional API key
-```
-
-The application includes a mock mode for development. Set `use_mock = False` in `backend/fastapi_client.py` when your FastAPI service is ready.
+- Search 17,374+ legal document chunks
+- Filter by 120+ clients
+- AI-generated answers with source citations
+- Direct PDF access via presigned URLs
+- Predefined legal queries
 
 ## Architecture
 
-```
-├── app.py                    # Main Streamlit app
-├── backend/
-│   ├── fastapi_client.py     # FastAPI client with mock mode
-│   ├── models.py             # Data models
-│   └── config.py             # API configuration
-├── pages/                    # UI pages
-└── utils/                    # UI components and helpers
+- **Frontend**: Streamlit UI
+- **Backend**: AWS S3 Vector Store + Azure OpenAI
+- **Embeddings**: e5_mistral_embed_384 model
+- **Documents**: Legal contracts, addendums, SOWs
+
+## Testing
+
+```bash
+uv run python test_rag.py
 ```

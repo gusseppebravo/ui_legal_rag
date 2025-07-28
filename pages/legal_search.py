@@ -1,8 +1,3 @@
-"""
-Legal Document Search Page
-Main search interface matching the left side of the provided image
-"""
-
 import streamlit as st
 from typing import Optional
 from backend.models import SearchResult
@@ -10,8 +5,6 @@ from utils.ui_components import display_document_snippet, display_search_summary
 from utils.session_state import clear_search_results
 
 def show_legal_search_page():
-    """Display the main legal document search page"""
-    # Page header with navigation
     st.markdown("""
     <div class="search-header">
         <h1>📋 Legal document search</h1>
@@ -19,7 +12,6 @@ def show_legal_search_page():
     </div>
     """, unsafe_allow_html=True)
     
-    # Show document viewer button if a document is selected
     from utils.session_state import has_selected_document
     if has_selected_document():
         if st.button("📄 View selected document", type="secondary", use_container_width=True):
@@ -27,17 +19,13 @@ def show_legal_search_page():
             st.rerun()
         st.markdown("---")
     
-    # Get backend instance
     backend = st.session_state.backend
     
-    # Main search form
     with st.container():
         st.markdown("### Search configuration")
         
-        # Query selection section
         st.markdown("**Select query**")
         
-        # Get predefined queries
         predefined_queries = backend.get_predefined_queries()
         query_options = ["Select a predefined query..."] + [q.title for q in predefined_queries]
         
@@ -47,7 +35,6 @@ def show_legal_search_page():
             key="query_selector"
         )
         
-        # Get selected query object
         selected_query = None
         if selected_query_title != "Select a predefined query...":
             selected_query = next(
@@ -55,7 +42,6 @@ def show_legal_search_page():
                 None
             )
         
-        # Custom query section
         st.markdown("**Custom query**")
         custom_query = st.text_area(
             "Enter your custom query:",
@@ -65,7 +51,6 @@ def show_legal_search_page():
             key="custom_query_input"
         )
         
-        # Client selection
         col1, col2 = st.columns([2, 1])
         
         with col1:
@@ -87,22 +72,18 @@ def show_legal_search_page():
                 key="search_button"
             )
     
-    # Determine which query to use
     final_query = None
     if custom_query.strip():
         final_query = custom_query.strip()
     elif selected_query:
         final_query = selected_query.query_text
     
-    # Execute search
     if search_button:
         if final_query:
             with st.spinner("Searching documents..."):
-                # Update session state
                 st.session_state.custom_query = custom_query
                 st.session_state.selected_client = selected_client
                 
-                # Perform search
                 search_results = backend.search_documents(
                     query=final_query,
                     client_filter=selected_client if selected_client != "All" else None
@@ -110,14 +91,13 @@ def show_legal_search_page():
                 st.session_state.search_results = search_results
         else:
             st.error("Please enter a custom query or select a predefined query.")
-      # Display search results
+    
     if 'search_results' in st.session_state and st.session_state.search_results:
         results = st.session_state.search_results
         
         st.markdown("---")
         st.markdown("### Search results")
         
-        # Results summary
         display_search_summary(
             results.summary,
             results.total_documents,
@@ -126,7 +106,6 @@ def show_legal_search_page():
         
         st.markdown("---")
         
-        # Document snippets section
         if results.snippets:
             st.markdown("### Document snippets")
             st.markdown("*Click on any snippet to view the full document*")
@@ -139,7 +118,7 @@ def show_legal_search_page():
                 "No document snippets were found for your query. Try adjusting your search terms or client filter.",
                 "warning"
             )
-      # Show query information if available
+    
     if selected_query:
         with st.expander("ℹ️ Query information"):
             st.markdown(f"**Category:** {selected_query.category}")

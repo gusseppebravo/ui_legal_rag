@@ -1,42 +1,40 @@
-"""
-Document Viewer Page
-Full document viewing interface matching the right side of the provided image
-"""
-
 import streamlit as st
-from typing import Optional
-from backend.models import FullDocument
 from utils.session_state import clear_selected_document
 
 def show_document_viewer_page():
-    """Display the document viewer page"""
-    
-    # Navigation button at the top
     if st.button("← Back to search", type="secondary"):
         st.session_state.current_page = "search"
         st.rerun()
     
     st.markdown("---")
     
-    # Get backend instance
-    backend = st.session_state.backend
-    # Check if a document is selected
     if 'selected_document' not in st.session_state or not st.session_state.selected_document:
         st.error("No document selected. Please go back to search and select a document.")
-    
-    # Get the full document
-    document_id = st.session_state.selected_document
-    document = backend.get_full_document(document_id)
-    
-    if not document:
-        st.error("Document not found.")
         return
     
-    # Document header with close button
+    if 'search_results' not in st.session_state or not st.session_state.search_results:
+        st.error("No search results found. Please go back and perform a search first.")
+        return
+    
+    document_id = st.session_state.selected_document
+    search_results = st.session_state.search_results
+    
+    # Find the selected snippet from search results
+    selected_snippet = None
+    for snippet in search_results.snippets:
+        if snippet.id == document_id:
+            selected_snippet = snippet
+            break
+    
+    if not selected_snippet:
+        st.error("Selected document not found in search results.")
+        return
+    
+    # Header
     col1, col2 = st.columns([6, 1])
     with col1:
-        st.title("📄 Document viewer")
-        st.subheader(document.title)
+        st.title("📄 Document chunk viewer")
+        st.subheader(selected_snippet.title)
     
     with col2:
         if st.button("✖️", help="Close document", key="close_doc"):
@@ -44,84 +42,101 @@ def show_document_viewer_page():
             st.rerun()
     
     # Document metadata
-    with st.container():
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Client", document.client)
-        
-        with col2:
-            st.metric("Document Type", document.document_type)
-        
-        with col3:
-            st.metric("Date Created", document.date_created.strftime("%Y-%m-%d"))
-        
-        with col4:
-            st.metric("Version", document.metadata.get("version", "N/A"))
-    
-
-    st.markdown("### Full document content")
-    
-    # Content display with syntax highlighting for readability
-    with st.container():
-        st.markdown("""
-        <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #007bff;">
-        """, unsafe_allow_html=True)
-        
-        # Display the document content
-        st.markdown(document.content)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    # Document metadata section
-    with st.expander("📋 Document Metadata"):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**Classification:**")
-            st.write(document.metadata.get("classification", "N/A"))
-            
-            st.markdown("**Last Updated:**")
-            st.write(document.metadata.get("last_updated", "N/A"))
-        
-        with col2:
-            st.markdown("**Sections:**")
-            for section in document.sections:
-                st.write(f"• {section['title']} (Page {section['page']})")
-    
-    # Navigation buttons
-    st.markdown("---")
-    col1, col2, col3 = st.columns([2, 1, 1])
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        if st.button("← Back to Search Results", type="primary", use_container_width=True):
+        st.metric("Source", selected_snippet.source)
+    
+    with col2:
+        st.metric("Document type", selected_snippet.section or 'N/A')
+    
+    with col3:
+        relevance = f"{selected_snippet.relevance_score:.3f}"
+        st.metric("Relevance", relevance)
+    
+    with col4:
+        distance = selected_snippet.metadata.get('distance', 'N/A') if selected_snippet.metadata else 'N/A'
+        st.metric("Distance", distance)
+    
+    st.markdown("---")
+    
+    # Document content
+    st.markdown("### Chunk content")
+    
+    st.markdown(f"""
+    <div style="
+        background-color: #f8f9fa; 
+        padding: 1.5rem; 
+        border-radius: 0.5rem; 
+        border-left: 4px solid #007bff;
+        margin: 1rem 0;
+        line-height: 1.6;
+        font-size: 1.1rem;
+    ">
+        {selected_snippet.content}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Download file section
+    if selected_snippet.metadata and 'presigned_url' in selected_snippet.metadata:
+        presigned_url = selected_snippet.metadata['presigned_url']
+        if presigned_url:
+            st.markdown("### File access")
+            st.markdown("Download the complete document file:")
+            st.markdown(f"""
+            <a href="{presigned_url}" target="_blank" style="text-decoration: none;">
+                <button style="
+                    padding: 0.75rem 1.5rem;
+                    background-color: #10b981;
+                    color: white;
+                    border: none;
+                    border-radius: 0.5rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    font-size: 1rem;
+                    transition: all 0.2s;
+                " onmouseover="this.style.backgroundColor='#059669'" onmouseout="this.style.backgroundColor='#10b981'">
+                    📥 Download file
+                </button>
+            </a>
+            """, unsafe_allow_html=True)
+    
+    # Additional metadata
+    if selected_snippet.metadata:
+        with st.expander("📋 Additional metadata"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**File path:**")
+                s3_path = selected_snippet.metadata.get("s3_path", "N/A")
+                st.code(s3_path, language=None)
+                
+                st.markdown("**Client account:**")
+                st.write(selected_snippet.metadata.get("client_account", "N/A"))
+            
+            with col2:
+                st.markdown("**File name:**")
+                st.write(selected_snippet.metadata.get("file_name", "N/A"))
+                
+                st.markdown("**Chunk metadata:**")
+                for key, value in selected_snippet.metadata.items():
+                    if key not in ['presigned_url', 's3_path', 'client_account', 'file_name', 'text']:
+                        st.write(f"• **{key}:** {value}")
+    
+    # Navigation
+    st.markdown("---")
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        if st.button("← Back to search results", type="primary", use_container_width=True):
             clear_selected_document()
             st.rerun()
     
     with col2:
-        if st.button("📥 Export", use_container_width=True):
-            st.info("Export functionality would be implemented here")
+        # Show current query info
+        if search_results.query:
+            st.info(f"Query: {search_results.query[:50]}...")
     
-    with col3:
-        if st.button("🔗 Share", use_container_width=True):
-            st.info("Share functionality would be implemented here")
-    
-    # Additional actions
-    with st.expander("🔧 Document Actions"):
-        st.markdown("""
-        **Available Actions:**
-        - Export document as PDF
-        - Share document link
-        - Download original file
-        - Add to favorites
-        - Create citation
-        
-        *These actions would be connected to your backend system.*
-        """)
-        
-        if st.button("Print Document", key="print_doc"):
-            st.info("Print functionality would open the browser's print dialog")
-    
-    # Footer with document info
+    # Footer
     st.markdown("---")
-    st.caption(f"Document ID: {document.id} | Viewing: {document.title}")
+    st.caption(f"Chunk ID: {selected_snippet.id} | Document: {selected_snippet.title}")

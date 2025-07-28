@@ -1,30 +1,18 @@
-"""
-Legal Document Search UI
-"""
-
 import streamlit as st
-from backend.fastapi_client import FastAPIRAGClient
-from utils.session_state import initialize_session_state, has_selected_document
+from backend.rag_client import RAGClient
+from utils.session_state import initialize_session_state
 from utils.ui_components import setup_page_config
 
-
 setup_page_config()
-
-
 initialize_session_state()
 
-
 if 'backend' not in st.session_state:
-    st.session_state.backend = FastAPIRAGClient()
+    st.session_state.backend = RAGClient()
 
 def main():
-    """Main application entry point"""
-    
-    # Initialize current page if not set
     if 'current_page' not in st.session_state:
         st.session_state.current_page = "search"
     
-    # Load the appropriate page
     if st.session_state.current_page == "search":
         from pages.legal_search import show_legal_search_page
         show_legal_search_page()
