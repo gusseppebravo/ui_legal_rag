@@ -2,6 +2,12 @@
 
 Streamlit interface for searching legal documents using AI-powered retrieval.
 
+## Installation
+
+```bash
+uv sync
+```
+
 ## Quick Start
 
 ```bash
