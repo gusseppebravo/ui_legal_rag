@@ -36,7 +36,7 @@ class LegalRAGBackend:
     
     def _load_clients_data(self) -> List[str]:
         try:
-            csv_path = "/home/ubuntu/legal-RAG-pipeline/files_per_client_summary.csv"
+            csv_path = "files_per_client_summary.csv"
             df = pd.read_csv(csv_path)
             clients = ["All"] + df['client_account'].tolist()
             return clients

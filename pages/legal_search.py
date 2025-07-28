@@ -27,18 +27,18 @@ def show_legal_search_page():
         st.markdown("**Select query**")
         
         predefined_queries = backend.get_predefined_queries()
-        query_options = ["Select a predefined query..."] + [q.title for q in predefined_queries]
+        query_options = ["Select a predefined query..."] + [q.query_text for q in predefined_queries]
         
-        selected_query_title = st.selectbox(
+        selected_query_text = st.selectbox(
             "Choose from predefined queries:",
             options=query_options,
             key="query_selector"
         )
         
         selected_query = None
-        if selected_query_title != "Select a predefined query...":
+        if selected_query_text != "Select a predefined query...":
             selected_query = next(
-                (q for q in predefined_queries if q.title == selected_query_title), 
+                (q for q in predefined_queries if q.query_text == selected_query_text), 
                 None
             )
         
@@ -96,6 +96,23 @@ def show_legal_search_page():
         results = st.session_state.search_results
         
         st.markdown("---")
+        
+        # Highlight the final query that was used
+        st.markdown("### 🔍 Query used")
+        st.markdown(f"""
+        <div style="
+            background-color: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        ">
+            <div style="color: #374151; font-style: italic;">
+                "{results.query}"
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.markdown("### Search results")
         
         display_search_summary(
@@ -118,9 +135,3 @@ def show_legal_search_page():
                 "No document snippets were found for your query. Try adjusting your search terms or client filter.",
                 "warning"
             )
-    
-    if selected_query:
-        with st.expander("ℹ️ Query information"):
-            st.markdown(f"**Category:** {selected_query.category}")
-            st.markdown(f"**Description:** {selected_query.description}")
-            st.markdown(f"**Query text:** {selected_query.query_text}")
