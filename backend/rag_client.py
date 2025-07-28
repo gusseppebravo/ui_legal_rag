@@ -47,6 +47,7 @@ class RAGClient:
                     content=metadata.get("text", ""),
                     source=metadata.get("client_account", "Unknown"),
                     relevance_score=1.0 - chunk.get("distance", 0.0),
+                    distance=chunk.get("distance", 0.0),
                     section=metadata.get("document_type", "Unknown"),
                     metadata=metadata
                 )

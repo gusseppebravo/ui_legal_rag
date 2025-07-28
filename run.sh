@@ -1,3 +1,3 @@
 #/bin/bash
 
-uv run streamlit run app.py --server.port 8501 --server.headless true
+uv run streamlit run app.py --server.port 8501 --server.address 0.0.0.0

@@ -55,7 +55,7 @@ def show_document_viewer_page():
         st.metric("Relevance", relevance)
     
     with col4:
-        distance = selected_snippet.metadata.get('distance', 'N/A') if selected_snippet.metadata else 'N/A'
+        distance = f"{selected_snippet.distance:.3f}"
         st.metric("Distance", distance)
     
     st.markdown("---")

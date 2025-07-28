@@ -8,6 +8,7 @@ class DocumentSnippet:
     content: str
     source: str
     relevance_score: float
+    distance: float
     page_number: Optional[int] = None
     section: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None

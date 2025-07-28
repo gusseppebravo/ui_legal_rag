@@ -50,7 +50,7 @@ def display_document_snippet(snippet: DocumentSnippet, index: int):
                 <div style="display: flex; gap: 1rem; color: #6b7280; font-size: 0.875rem;">
                     <span><strong>Source:</strong> {snippet.source}</span>
                     <span><strong>Document type:</strong> {snippet.section or 'N/A'}</span>
-                    <span><strong>Distance:</strong> {snippet.metadata.get('distance', 'N/A') if snippet.metadata else 'N/A'}</span>
+                    <span><strong>Distance:</strong> {snippet.distance:.3f}</span>
                 </div>
             </div>
             <div style="min-width: 80px; text-align: center;">
