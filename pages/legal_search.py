@@ -1,94 +1,150 @@
 import streamlit as st
 from typing import Optional
 from backend.models import SearchResult
-from utils.ui_components import display_document_snippet, display_search_summary, create_info_box
+from utils.ui_components import display_document_snippet, display_search_summary, create_info_box, display_search_debug_info
 from utils.session_state import clear_search_results
 
 def show_legal_search_page():
-    st.markdown("""
-    <div class="search-header">
-        <h1>📋 Legal document search</h1>
-        <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Search and analyze legal documents with AI-powered retrieval</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
+    # Check if document is selected and show quick access
     from utils.session_state import has_selected_document
     if has_selected_document():
-        if st.button("📄 View selected document", type="secondary", use_container_width=True):
-            st.session_state.current_page = "document_viewer"
-            st.rerun()
-        st.markdown("---")
+        st.info("📄 Document selected - use sidebar to view")
     
     backend = st.session_state.backend
-    
     with st.container():
-        st.markdown("### Search configuration")
+        st.subheader("Search Configuration")
         
-        st.markdown("**Select query**")
-        
-        predefined_queries = backend.get_predefined_queries()
-        query_options = ["Select a predefined query..."] + [q.query_text for q in predefined_queries]
-        
-        selected_query_text = st.selectbox(
-            "Choose from predefined queries:",
-            options=query_options,
-            key="query_selector"
-        )
-        
-        selected_query = None
-        if selected_query_text != "Select a predefined query...":
-            selected_query = next(
-                (q for q in predefined_queries if q.query_text == selected_query_text), 
-                None
-            )
-        
-        st.markdown("**Custom query**")
-        custom_query = st.text_area(
-            "Enter your custom query:",
-            value=st.session_state.get('custom_query', ''),
-            height=100,
-            placeholder="Type your custom legal document query here...",
-            key="custom_query_input"
-        )
-        
-        col1, col2 = st.columns([2, 1])
+        # Query selection in a more compact layout
+        col1, col2 = st.columns([3, 1])
         
         with col1:
-            st.markdown("**Client name**")
+            st.markdown("**Query Selection**")
+            
+            predefined_queries = backend.get_predefined_queries()
+            query_options = ["Select predefined query..."] + [q.query_text for q in predefined_queries]
+            
+            selected_query_text = st.selectbox(
+                "Predefined queries:",
+                options=query_options,
+                key="query_selector",
+                label_visibility="collapsed"
+            )
+            
+            selected_query = None
+            if selected_query_text != "Select predefined query...":
+                selected_query = next(
+                    (q for q in predefined_queries if q.query_text == selected_query_text),
+                    None
+                )
+            
+            custom_query = st.text_area(
+                "Or enter custom query:",
+                value=st.session_state.get('custom_query', ''),
+                height=80,
+                placeholder="Type your custom legal document query here...",
+                key="custom_query_input"
+            )
+        
+        with col2:
+            st.markdown("**Filters & Settings**")
+            
             clients = backend.get_clients()
             selected_client = st.selectbox(
-                "Select client filter:",
+                "Client:",
                 options=clients,
                 index=clients.index(st.session_state.get('selected_client', 'All')),
                 key="client_selector"
             )
-        
-        with col2:
-            st.markdown("**Search action**")
+            
+            document_types = backend.get_document_types()
+            selected_doc_type = st.selectbox(
+                "Document type:",
+                options=document_types,
+                index=document_types.index(st.session_state.get('selected_doc_type', 'All')),
+                key="doc_type_selector"
+            )
+            
+            # Advanced search parameters
+            col2a, col2b = st.columns(2)
+            with col2a:
+                num_results = st.selectbox(
+                    "Results:",
+                    options=[3, 5, 10, 15],
+                    index=1,  # Default to 5
+                    key="num_results"
+                )
+            
+            with col2b:
+                min_relevance = st.selectbox(
+                    "Min relevance:",
+                    options=[0.0, 0.1, 0.2, 0.3, 0.5],
+                    index=0,  # Default to 0.0
+                    key="min_relevance"
+                )
+            
+            st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
             search_button = st.button(
-                "🔍 Run",
-                type="primary",
+                "🔍 Search",
+                type="secondary",
                 use_container_width=True,
                 key="search_button"
             )
     
+    # Handle query selection logic - both can coexist, but predefined takes priority when searching
     final_query = None
-    if custom_query.strip():
-        final_query = custom_query.strip()
-    elif selected_query:
+    
+    # Predefined query takes priority if selected
+    if selected_query and selected_query_text != "Select predefined query...":
         final_query = selected_query.query_text
+        # Show a note if both are filled
+        if custom_query.strip():
+            st.info("📝 Using predefined query. Custom query will be ignored.")
+    elif custom_query.strip():
+        final_query = custom_query.strip()
     
     if search_button:
         if final_query:
             with st.spinner("Searching documents..."):
                 st.session_state.custom_query = custom_query
                 st.session_state.selected_client = selected_client
+                st.session_state.selected_doc_type = selected_doc_type
                 
                 search_results = backend.search_documents(
                     query=final_query,
-                    client_filter=selected_client if selected_client != "All" else None
+                    client_filter=selected_client if selected_client != "All" else None,
+                    document_type_filter=selected_doc_type if selected_doc_type != "All" else None,
+                    top_k=num_results,
+                    min_relevance=min_relevance
                 )
                 st.session_state.search_results = search_results
+                
+                # Log the search operation
+                try:
+                    from utils.usage_logger import log_search, log_predefined_query_usage
+                    log_search(
+                        query=final_query,
+                        client_filter=selected_client if selected_client != "All" else None,
+                        doc_type_filter=selected_doc_type if selected_doc_type != "All" else None,
+                        result_count=search_results.total_documents,
+                        processing_time=search_results.processing_time
+                    )
+                    
+                    # Log predefined query usage if applicable
+                    if selected_query:
+                        log_predefined_query_usage(selected_query.id, selected_query.title)
+                except Exception:
+                    # Don't break the app if logging fails
+                    pass
+                
+                # Add to search history
+                from utils.session_state import add_to_search_history
+                add_to_search_history(
+                    final_query,
+                    selected_client,
+                    selected_doc_type,
+                    search_results.total_documents,
+                    search_results.processing_time
+                )
         else:
             st.error("Please enter a custom query or select a predefined query.")
     
@@ -119,6 +175,14 @@ def show_legal_search_page():
             results.summary,
             results.total_documents,
             results.processing_time
+        )
+        
+        # Add search debug information
+        display_search_debug_info(
+            results.query,
+            results.client_filter or "All clients",
+            st.session_state.get('selected_doc_type', 'All'),
+            len(results.snippets)
         )
         
         st.markdown("---")

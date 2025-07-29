@@ -86,18 +86,22 @@ class LegalRAGBackend:
 
         return embeddings[0] if len(embeddings) == 1 else embeddings
 
-    def query_s3_vector_store(self, query_text: str, client_account_filter: Optional[str] = None, top_k: int = 5):
+    def query_s3_vector_store(self, query_text: str, client_account_filter: Optional[str] = None, 
+                               document_type_filter: Optional[str] = None, top_k: int = 5):
         print(f"\n--- Processing Query: '{query_text}' ---")
 
         query_embedding = self.get_text_embedding(query_text)
-        filter_expression = None
+        filter_expression = {}
         
+        # Build filter expression with multiple conditions
         if client_account_filter and client_account_filter != "All":
-            filter_expression = {
-                "client_account": {
-                    "$eq": client_account_filter
-                }
-            }
+            filter_expression["client_account"] = {"$eq": client_account_filter}
+            
+        if document_type_filter and document_type_filter != "All":
+            filter_expression["document_type"] = {"$eq": document_type_filter}
+
+        # Only apply filter if we have conditions
+        final_filter = filter_expression if filter_expression else None
 
         try:
             response = self.s3v.query_vectors(
@@ -109,7 +113,7 @@ class LegalRAGBackend:
                 },
                 returnMetadata=True,
                 returnDistance=True,
-                filter=filter_expression
+                filter=final_filter
             )
             return response
         except Exception as e:
@@ -130,8 +134,15 @@ class LegalRAGBackend:
             context += f"{ref} ({source}):\n{chunk_text}\n\n"
             source_refs[ref] = metadata
 
-        prompt = f"""You are a helpful assistant. Use only the following context to answer the question.
-Cite sources using [1], [2], etc., based only on the exact chunks below. Do not make up citations. Do not include sources not explicitly mentioned.
+        prompt = f"""You are a legal document analyst. Analyze the following context to provide a comprehensive answer to the question.
+
+Focus on:
+- What the documents DO say (positive findings)
+- Specific requirements, permissions, or restrictions
+- Actionable information and clear guidance
+- Direct quotes and specific clauses when relevant
+
+If information is not explicitly stated, indicate what is missing rather than just saying "does not mention."
 
 Context:
 {context}
@@ -141,11 +152,12 @@ Question: {query}
 Answer:"""
         return prompt, source_refs
 
-    def run_query_pipeline(self, query: str, client_filter: Optional[str] = None, top_k: int = 5):
+    def run_query_pipeline(self, query: str, client_filter: Optional[str] = None, 
+                          document_type_filter: Optional[str] = None, top_k: int = 5):
         print(f"\n🔍 Running RAG query for: {query}\n")
         start = time.time()
 
-        chunks = self.query_s3_vector_store(query, client_filter, top_k=top_k)
+        chunks = self.query_s3_vector_store(query, client_filter, document_type_filter, top_k=top_k)
 
         if not chunks:
             print("❗ No chunks returned from vector store.")
@@ -158,9 +170,10 @@ Answer:"""
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a helpful assistant. Use only the following context to answer the question. "
-                               "Cite sources using [1], [2], etc., based only on the exact chunks below. "
-                               "Do not make up citations. Do not include sources not explicitly mentioned."
+                    "content": "You are a legal document analyst. Provide comprehensive, actionable answers based on the context provided. "
+                               "Focus on what documents DO say rather than what they don't mention. "
+                               "Cite sources using [1], [2], etc. based on the exact chunks provided. "
+                               "When information is incomplete, explain what specific details are missing."
                 },
                 {"role": "user", "content": prompt}
             ]
@@ -197,6 +210,9 @@ Answer:"""
 
     def get_clients(self) -> List[str]:
         return self.clients_data
+
+    def get_document_types(self) -> List[str]:
+        return ["All", "Contract", "Amendment", "Addendum", "SOW", "MSA", "Agreement", "Policy"]
 
     def get_predefined_queries(self) -> List[Dict[str, str]]:
         return [

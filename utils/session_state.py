@@ -1,4 +1,6 @@
 import streamlit as st
+import streamlit as st
+from datetime import datetime
 
 def initialize_session_state():
     if 'search_results' not in st.session_state:
@@ -18,6 +20,43 @@ def initialize_session_state():
     
     if 'current_page' not in st.session_state:
         st.session_state.current_page = "search"
+    
+    if 'search_history' not in st.session_state:
+        st.session_state.search_history = []
+    
+    # Log session start (only once per session)
+    if 'session_logged' not in st.session_state:
+        st.session_state.session_logged = True
+        try:
+            from .usage_logger import log_session_start
+            log_session_start()
+        except Exception:
+            # Don't break the app if logging fails
+            pass
+    
+    if 'search_history' not in st.session_state:
+        st.session_state.search_history = []
+
+def add_to_search_history(query: str, client_filter: str, document_type_filter: str, results_count: int, processing_time: float):
+    """Add a search to the history"""
+    history_item = {
+        'query': query,
+        'client_filter': client_filter or "All",
+        'document_type_filter': document_type_filter or "All",
+        'results_count': results_count,
+        'processing_time': processing_time,
+        'timestamp': datetime.now().strftime("%H:%M:%S")
+    }
+    
+    # Keep only last 10 searches
+    if len(st.session_state.search_history) >= 10:
+        st.session_state.search_history.pop(0)
+    
+    st.session_state.search_history.append(history_item)
+
+def get_search_history():
+    """Get the search history"""
+    return st.session_state.search_history[::-1]  # Most recent first
 
 def clear_search_results():
     if 'search_results' in st.session_state:

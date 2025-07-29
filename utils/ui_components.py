@@ -4,64 +4,91 @@ from backend.models import DocumentSnippet
 
 def setup_page_config():
     st.set_page_config(
-        page_title="Legal Document Search",
+        page_title="Legal RAG",
         page_icon="📋",
         layout="wide",
-        initial_sidebar_state="collapsed"
+        initial_sidebar_state="expanded"
     )
     st.markdown("""
     <style>
     .stAppHeader { display: none; }
-    .stSidebar { display: none; }
     .stAppDeployButton { display: none; }
     .stApp > header { display: none; }
     
+    /* Compact sidebar */
+    .css-1d391kg { padding-top: 1rem; }
+    
+    /* More compact content */
+    .block-container { 
+        padding-top: 1rem; 
+        padding-bottom: 1rem;
+        max-width: 1200px;
+    }
+    
+    /* Smaller fonts and spacing */
+    .stMetric { font-size: 0.9rem; }
+    .stMetric > div > div { font-size: 1.2rem !important; }
+    
+    /* Compact buttons */
+    .stButton > button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+    }
+    
     .search-header {
-        background: linear-gradient(90deg, #1f77b4, #2ca02c);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin-bottom: 2rem;
+        padding: 0.8rem;
+        border-radius: 0.4rem;
+        margin-bottom: 1rem;
         text-align: center;
     }
     
     .search-header h1 {
         margin: 0;
-        font-size: 2rem;
+        font-size: 1.5rem;
         font-weight: bold;
     }
     
     .document-snippet {
         background-color: #ffffff;
-        padding: 1rem;
-        border-radius: 0.5rem;
+        padding: 0.8rem;
+        border-radius: 0.4rem;
         border: 1px solid #e1e5e9;
-        margin-bottom: 1rem;
+        margin-bottom: 0.8rem;
     }
+    
+    /* Compact selectbox and inputs */
+    .stSelectbox > div > div { font-size: 0.9rem; }
+    .stTextArea > div > div { font-size: 0.9rem; }
+    
+    /* Smaller section headers */
+    h3 { font-size: 1.2rem; margin-bottom: 0.5rem; }
+    h4 { font-size: 1.1rem; margin-bottom: 0.4rem; }
     </style>
     """, unsafe_allow_html=True)
 
 def display_document_snippet(snippet: DocumentSnippet, index: int):
     st.markdown(f"""
     <div class="document-snippet">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
             <div style="flex: 1;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #1f2937;">{snippet.title}</h4>
-                <div style="display: flex; gap: 1rem; color: #6b7280; font-size: 0.875rem;">
+                <h4 style="margin: 0 0 0.3rem 0; color: #1f2937; font-size: 1.1rem;">{snippet.title}</h4>
+                <div style="display: flex; gap: 0.8rem; color: #6b7280; font-size: 0.8rem;">
                     <span><strong>Source:</strong> {snippet.source}</span>
-                    <span><strong>Document type:</strong> {snippet.section or 'N/A'}</span>
+                    <span><strong>Type:</strong> {snippet.section or 'N/A'}</span>
                     <span><strong>Distance:</strong> {snippet.distance:.3f}</span>
                 </div>
             </div>
-            <div style="min-width: 80px; text-align: center;">
-                <div style="background-color: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: bold;">
+            <div style="min-width: 70px; text-align: center;">
+                <div style="background-color: #3b82f6; color: white; padding: 0.2rem 0.4rem; border-radius: 0.3rem; font-size: 0.8rem; font-weight: bold;">
                     {snippet.relevance_score:.3f}
                 </div>
-                <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;">Relevance</div>
+                <div style="font-size: 0.7rem; color: #6b7280; margin-top: 0.2rem;">Relevance</div>
             </div>
         </div>
-        <p style="margin: 0 0 1rem 0; color: #374151; line-height: 1.5;">
-            {snippet.content[:300] + "..." if len(snippet.content) > 300 else snippet.content}
+        <p style="margin: 0 0 0.8rem 0; color: #374151; line-height: 1.4; font-size: 0.9rem;">
+            {snippet.content[:250] + "..." if len(snippet.content) > 250 else snippet.content}
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -69,7 +96,14 @@ def display_document_snippet(snippet: DocumentSnippet, index: int):
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        if st.button(f"📄 View full document", key=f"view_doc_{index}", use_container_width=True):
+        if st.button(f"📄 View document", key=f"view_doc_{index}", use_container_width=True):
+            # Log document view
+            try:
+                from .usage_logger import log_document_view
+                log_document_view(snippet.id, "search_results")
+            except Exception:
+                pass
+            
             from utils.session_state import set_selected_document
             set_selected_document(snippet.id)
             st.rerun()
@@ -84,14 +118,15 @@ def display_document_snippet(snippet: DocumentSnippet, index: int):
             <a href="{presigned_url}" target="_blank" style="text-decoration: none;">
                 <button style="
                     width: 100%;
-                    padding: 0.5rem 1rem;
+                    padding: 0.4rem 0.8rem;
                     background-color: #10b981;
                     color: white;
                     border: none;
-                    border-radius: 0.375rem;
+                    border-radius: 0.3rem;
                     font-weight: 500;
                     cursor: pointer;
                     transition: all 0.2s;
+                    font-size: 0.9rem;
                 " onmouseover="this.style.backgroundColor='#059669'" onmouseout="this.style.backgroundColor='#10b981'">
                     📥 Download file
                 </button>
@@ -99,7 +134,7 @@ def display_document_snippet(snippet: DocumentSnippet, index: int):
             """, unsafe_allow_html=True)
         else:
             st.button("📥 File unavailable", disabled=True, key=f"file_unavailable_{index}", use_container_width=True)
-    
+
     st.markdown("---")
 
 def display_search_summary(summary: str, total_docs: int, processing_time: float):
@@ -108,11 +143,12 @@ def display_search_summary(summary: str, total_docs: int, processing_time: float
     <div style="
         background-color: #f0f9ff;
         border: 1px solid #0ea5e9;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
+        border-radius: 0.4rem;
+        padding: 0.8rem;
+        margin-bottom: 0.8rem;
+        font-size: 0.95rem;
     ">
-        <div style="color: #374151; line-height: 1.6;">
+        <div style="color: #374151; line-height: 1.5;">
             {summary}
         </div>
     </div>
@@ -138,3 +174,25 @@ def create_info_box(title: str, content: str, type: str = "info"):
         st.error(f"**{title}**\n\n{content}")
     elif type == "success":
         st.success(f"**{title}**\n\n{content}")
+
+def display_search_debug_info(query: str, client_filter: str, document_type_filter: str, total_chunks: int):
+    with st.expander("🔍 Search details", expanded=False):
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.markdown("**Query:**")
+            st.text(query[:80] + "..." if len(query) > 80 else query)
+        
+        with col2:
+            st.markdown("**Client filter:**")
+            st.write(client_filter or "All clients")
+        
+        with col3:
+            st.markdown("**Document type:**")
+            st.write(document_type_filter or "All types")
+        
+        with col4:
+            st.markdown("**Results:**")
+            st.write(f"{total_chunks} chunks")
+        
+        st.caption("Vector search using e5_mistral_embed_384 • AWS S3 Vector Store")

@@ -2,12 +2,6 @@ import streamlit as st
 from utils.session_state import clear_selected_document
 
 def show_document_viewer_page():
-    if st.button("← Back to search", type="secondary"):
-        st.session_state.current_page = "search"
-        st.rerun()
-    
-    st.markdown("---")
-    
     if 'selected_document' not in st.session_state or not st.session_state.selected_document:
         st.error("No document selected. Please go back to search and select a document.")
         return
@@ -30,11 +24,11 @@ def show_document_viewer_page():
         st.error("Selected document not found in search results.")
         return
     
-    # Header
-    col1, col2 = st.columns([6, 1])
+    # Header - more compact
+    col1, col2 = st.columns([5, 1])
     with col1:
-        st.title("📄 Document chunk viewer")
-        st.subheader(selected_snippet.title)
+        st.subheader("📄 Document Chunk")
+        st.markdown(f"**{selected_snippet.title}**")
     
     with col2:
         if st.button("✖️", help="Close document", key="close_doc"):
@@ -60,40 +54,39 @@ def show_document_viewer_page():
     
     st.markdown("---")
     
-    # Document content
-    st.markdown("### Chunk content")
+    # Document content - more compact
+    st.markdown("### Content")
     
     st.markdown(f"""
     <div style="
         background-color: #f8f9fa; 
-        padding: 1.5rem; 
-        border-radius: 0.5rem; 
-        border-left: 4px solid #007bff;
-        margin: 1rem 0;
-        line-height: 1.6;
-        font-size: 1.1rem;
+        padding: 1rem; 
+        border-radius: 0.4rem; 
+        border-left: 3px solid #007bff;
+        margin: 0.5rem 0;
+        line-height: 1.5;
+        font-size: 0.95rem;
     ">
         {selected_snippet.content}
     </div>
     """, unsafe_allow_html=True)
     
-    # Download file section
+    # Download file section - more compact
     if selected_snippet.metadata and 'presigned_url' in selected_snippet.metadata:
         presigned_url = selected_snippet.metadata['presigned_url']
         if presigned_url:
-            st.markdown("### File access")
-            st.markdown("Download the complete document file:")
+            st.markdown("### File Download")
             st.markdown(f"""
             <a href="{presigned_url}" target="_blank" style="text-decoration: none;">
                 <button style="
-                    padding: 0.75rem 1.5rem;
+                    padding: 0.5rem 1rem;
                     background-color: #10b981;
                     color: white;
                     border: none;
-                    border-radius: 0.5rem;
+                    border-radius: 0.4rem;
                     font-weight: 500;
                     cursor: pointer;
-                    font-size: 1rem;
+                    font-size: 0.9rem;
                     transition: all 0.2s;
                 " onmouseover="this.style.backgroundColor='#059669'" onmouseout="this.style.backgroundColor='#10b981'">
                     📥 Download file
@@ -101,42 +94,34 @@ def show_document_viewer_page():
             </a>
             """, unsafe_allow_html=True)
     
-    # Additional metadata
+    # Metadata section - always visible, more compact
     if selected_snippet.metadata:
-        with st.expander("📋 Additional metadata"):
-            col1, col2 = st.columns(2)
+        st.markdown("### 📋 Metadata")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**File path:**")
+            s3_path = selected_snippet.metadata.get("s3_path", "N/A")
+            st.code(s3_path, language=None)
             
-            with col1:
-                st.markdown("**File path:**")
-                s3_path = selected_snippet.metadata.get("s3_path", "N/A")
-                st.code(s3_path, language=None)
-                
-                st.markdown("**Client account:**")
-                st.write(selected_snippet.metadata.get("client_account", "N/A"))
+            st.markdown("**Client:**")
+            st.write(selected_snippet.metadata.get("client_account", "N/A"))
+        
+        with col2:
+            st.markdown("**File name:**")
+            st.write(selected_snippet.metadata.get("file_name", "N/A"))
             
-            with col2:
-                st.markdown("**File name:**")
-                st.write(selected_snippet.metadata.get("file_name", "N/A"))
-                
-                st.markdown("**Chunk metadata:**")
-                for key, value in selected_snippet.metadata.items():
-                    if key not in ['presigned_url', 's3_path', 'client_account', 'file_name', 'text']:
-                        st.write(f"• **{key}:** {value}")
+            # Show additional metadata compactly
+            additional_items = []
+            for key, value in selected_snippet.metadata.items():
+                if key not in ['presigned_url', 's3_path', 'client_account', 'file_name', 'text']:
+                    additional_items.append(f"**{key}:** {value}")
+            
+            if additional_items:
+                st.markdown("**Additional:**")
+                for item in additional_items[:3]:  # Limit to first 3 items
+                    st.write(f"• {item}")
     
-    # Navigation
+    # Footer - compact
     st.markdown("---")
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        if st.button("← Back to search results", type="primary", use_container_width=True):
-            clear_selected_document()
-            st.rerun()
-    
-    with col2:
-        # Show current query info
-        if search_results.query:
-            st.info(f"Query: {search_results.query[:50]}...")
-    
-    # Footer
-    st.markdown("---")
-    st.caption(f"Chunk ID: {selected_snippet.id} | Document: {selected_snippet.title}")
+    st.caption(f"Chunk: {selected_snippet.id} | {selected_snippet.title}")
