@@ -83,7 +83,7 @@ def show_top_nav():
         if st.session_state.current_page == "search":
             st.markdown("# 🔍")
         else:
-            st.markdown("# 📄 Document Viewer")
+            st.markdown("# 📄")
     
     with col2:
         if st.session_state.current_page == "document_viewer":
