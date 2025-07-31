@@ -36,10 +36,10 @@ Simple logging system to track user interactions and app performance for develop
 ### Running the analyzer
 ```bash
 # All logs
-python log_analyzer.py
+uv run python log_analyzer.py
 
 # Last 7 days only
-python log_analyzer.py --days 7
+uv run python log_analyzer.py --days 7
 ```
 
 ### Sample output
