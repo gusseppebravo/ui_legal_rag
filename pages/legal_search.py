@@ -12,10 +12,10 @@ def show_legal_search_page():
     
     backend = st.session_state.backend
     with st.container():
-        st.subheader("Search Configuration")
+        # st.subheader("Search Configuration")
         
         # Query selection in a more compact layout
-        col1, col2 = st.columns([3, 1])
+        col1, col2 = st.columns([3, 2])
         
         with col1:
             st.markdown("**Query Selection**")
@@ -46,7 +46,7 @@ def show_legal_search_page():
             )
         
         with col2:
-            st.markdown("**Filters & Settings**")
+            # st.markdown("**Filters & Settings**")
             
             clients = backend.get_clients()
             selected_client = st.selectbox(
@@ -64,23 +64,24 @@ def show_legal_search_page():
                 key="doc_type_selector"
             )
             
-            # Advanced search parameters
-            col2a, col2b = st.columns(2)
-            with col2a:
-                num_results = st.selectbox(
-                    "Results:",
-                    options=[3, 5, 10, 15],
-                    index=1,  # Default to 5
-                    key="num_results"
-                )
-            
-            with col2b:
-                min_relevance = st.selectbox(
-                    "Min relevance:",
-                    options=[0.0, 0.1, 0.2, 0.3, 0.5],
-                    index=0,  # Default to 0.0
-                    key="min_relevance"
-                )
+            # Advanced search parameters in expander
+            with st.expander("⚙️ Advanced", expanded=False):
+                col2a, col2b = st.columns(2)
+                with col2a:
+                    num_results = st.selectbox(
+                        "Results:",
+                        options=[3, 5, 10, 15],
+                        index=1,  # Default to 5
+                        key="num_results"
+                    )
+                
+                with col2b:
+                    min_relevance = st.selectbox(
+                        "Min relevance:",
+                        options=[0.0, 0.1, 0.2, 0.3, 0.5],
+                        index=0,  # Default to 0.0
+                        key="min_relevance"
+                    )
             
             st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
             search_button = st.button(

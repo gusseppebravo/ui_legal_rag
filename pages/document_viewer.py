@@ -29,6 +29,24 @@ def show_document_viewer_page():
     with col1:
         st.subheader("📄 Document Chunk")
         st.markdown(f"**{selected_snippet.title}**")
+        
+        # Extract contract number from s3_path
+        contract_number = "N/A"
+        if selected_snippet.metadata and 's3_path' in selected_snippet.metadata:
+            s3_path = selected_snippet.metadata['s3_path']
+            if '/contract-docs/' in s3_path:
+                # Extract number after /contract-docs/
+                path_parts = s3_path.split('/contract-docs/')
+                if len(path_parts) > 1:
+                    remaining_path = path_parts[1]
+                    # Get the first directory after contract-docs/
+                    contract_parts = remaining_path.split('/')
+                    if contract_parts:
+                        contract_number = contract_parts[0]
+        
+        # Display client and contract info
+        client_name = selected_snippet.metadata.get("client_account", "N/A") if selected_snippet.metadata else "N/A"
+        st.markdown(f"**Client:** {client_name} | **Contract:** {contract_number}")
     
     with col2:
         if st.button("✖️", help="Close document", key="close_doc"):
@@ -93,34 +111,6 @@ def show_document_viewer_page():
                 </button>
             </a>
             """, unsafe_allow_html=True)
-    
-    # Metadata section - always visible, more compact
-    if selected_snippet.metadata:
-        st.markdown("### 📋 Metadata")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**File path:**")
-            s3_path = selected_snippet.metadata.get("s3_path", "N/A")
-            st.code(s3_path, language=None)
-            
-            st.markdown("**Client:**")
-            st.write(selected_snippet.metadata.get("client_account", "N/A"))
-        
-        with col2:
-            st.markdown("**File name:**")
-            st.write(selected_snippet.metadata.get("file_name", "N/A"))
-            
-            # Show additional metadata compactly
-            additional_items = []
-            for key, value in selected_snippet.metadata.items():
-                if key not in ['presigned_url', 's3_path', 'client_account', 'file_name', 'text']:
-                    additional_items.append(f"**{key}:** {value}")
-            
-            if additional_items:
-                st.markdown("**Additional:**")
-                for item in additional_items[:3]:  # Limit to first 3 items
-                    st.write(f"• {item}")
     
     # Footer - compact
     st.markdown("---")

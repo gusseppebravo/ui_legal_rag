@@ -15,6 +15,13 @@ def setup_page_config():
     .stAppDeployButton { display: none; }
     .stApp > header { display: none; }
     
+    /* Hide any development/debug elements */
+    .css-1544g2n { display: none; }
+    .css-1d391kg .css-1544g2n { display: none; }
+    .stSidebar .css-1544g2n { display: none; }
+    [data-testid="stSidebarNav"] { display: none; }
+    .css-1dp5vir { display: none; }
+    
     /* Compact sidebar */
     .css-1d391kg { padding-top: 1rem; }
     
@@ -93,47 +100,18 @@ def display_document_snippet(snippet: DocumentSnippet, index: int):
     </div>
     """, unsafe_allow_html=True)
     
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        if st.button(f"📄 View document", key=f"view_doc_{index}", use_container_width=True):
-            # Log document view
-            try:
-                from .usage_logger import log_document_view
-                log_document_view(snippet.id, "search_results")
-            except Exception:
-                pass
-            
-            from utils.session_state import set_selected_document
-            set_selected_document(snippet.id)
-            st.rerun()
-    
-    with col2:
-        presigned_url = None
-        if snippet.metadata and 'presigned_url' in snippet.metadata:
-            presigned_url = snippet.metadata['presigned_url']
+    # Single button to view chunk
+    if st.button(f"📄 View chunk", key=f"view_doc_{index}", use_container_width=True):
+        # Log document view
+        try:
+            from .usage_logger import log_document_view
+            log_document_view(snippet.id, "search_results")
+        except Exception:
+            pass
         
-        if presigned_url:
-            st.markdown(f"""
-            <a href="{presigned_url}" target="_blank" style="text-decoration: none;">
-                <button style="
-                    width: 100%;
-                    padding: 0.4rem 0.8rem;
-                    background-color: #10b981;
-                    color: white;
-                    border: none;
-                    border-radius: 0.3rem;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    font-size: 0.9rem;
-                " onmouseover="this.style.backgroundColor='#059669'" onmouseout="this.style.backgroundColor='#10b981'">
-                    📥 Download file
-                </button>
-            </a>
-            """, unsafe_allow_html=True)
-        else:
-            st.button("📥 File unavailable", disabled=True, key=f"file_unavailable_{index}", use_container_width=True)
+        from utils.session_state import set_selected_document
+        set_selected_document(snippet.id)
+        st.rerun()
 
     st.markdown("---")
 
