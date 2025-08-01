@@ -7,7 +7,8 @@ setup_page_config()
 initialize_session_state()
 
 if 'backend' not in st.session_state:
-    st.session_state.backend = RAGClient()
+    # st.session_state.backend = RAGClient(use_cache=False)
+    st.session_state.backend = RAGClient(use_cache=True)
 
 def show_sidebar():
     """Display sidebar with navigation and quick stats"""
@@ -46,12 +47,12 @@ def show_sidebar():
         clients = backend.get_clients()
         queries = backend.get_predefined_queries()
         
-        st.markdown("**Dataset Info**")
+        st.markdown("**Dataset info**")
         st.metric("Clients", len(clients) - 1)  # -1 for "All"
-        st.metric("Predefined Queries", len(queries))
+        st.metric("Predefined queries", len(queries))
         
         if 'search_results' in st.session_state and st.session_state.search_results:
-            st.markdown("**Last Search**")
+            st.markdown("**Last search**")
             results = st.session_state.search_results
             st.metric("Results", results.total_documents)
             st.metric("Time", f"{results.processing_time:.2f}s")
@@ -60,7 +61,7 @@ def show_sidebar():
         from utils.session_state import get_search_history
         history = get_search_history()
         if history:
-            st.markdown("**Recent Searches**")
+            st.markdown("**Recent searches**")
             for i, item in enumerate(history[:3]):  # Show last 3 searches
                 doc_type_info = f" | Type: {item.get('document_type_filter', 'All')}" if item.get('document_type_filter') != 'All' else ""
                 if st.button(
@@ -70,7 +71,14 @@ def show_sidebar():
                 ):
                     # Replay the search
                     st.session_state.custom_query_input = item['query']
-                    st.session_state.client_selector = item['client_filter']
+                    # Handle both single and multi-client filters
+                    if ',' in item['client_filter']:
+                        # Multi-client search
+                        clients = [c.strip() for c in item['client_filter'].split(',')]
+                        st.session_state.client_selector = clients
+                    else:
+                        # Single client search  
+                        st.session_state.client_selector = [item['client_filter']] if item['client_filter'] != "All" else []
                     st.session_state.doc_type_selector = item.get('document_type_filter', 'All')
                     st.session_state.current_page = "search"
                     st.rerun()

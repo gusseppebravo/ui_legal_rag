@@ -29,3 +29,11 @@ class PredefinedQuery:
     description: str
     query_text: str
     category: str
+
+@dataclass
+class MultiClientResult:
+    query: str
+    client_results: Dict[str, str]
+    total_processing_time: float
+    tabular_summary: str
+    client_search_results: Optional[Dict[str, 'SearchResult']] = None

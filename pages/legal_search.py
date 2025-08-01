@@ -18,7 +18,7 @@ def show_legal_search_page():
         col1, col2 = st.columns([3, 2])
         
         with col1:
-            st.markdown("**Query Selection**")
+            st.markdown("**Query selection**")
             
             predefined_queries = backend.get_predefined_queries()
             query_options = ["Select predefined query..."] + [q.query_text for q in predefined_queries]
@@ -49,10 +49,12 @@ def show_legal_search_page():
             # st.markdown("**Filters & Settings**")
             
             clients = backend.get_clients()
-            selected_client = st.selectbox(
-                "Client:",
-                options=clients,
-                index=clients.index(st.session_state.get('selected_client', 'All')),
+            clients_without_all = [c for c in clients if c != "All"]
+            
+            selected_clients = st.multiselect(
+                "Client(s):",
+                options=clients_without_all,
+                default=st.session_state.get('selected_clients', []),
                 key="client_selector"
             )
             
@@ -104,52 +106,87 @@ def show_legal_search_page():
         final_query = custom_query.strip()
     
     if search_button:
-        if final_query:
+        if final_query and selected_clients:
             with st.spinner("Searching documents..."):
                 st.session_state.custom_query = custom_query
-                st.session_state.selected_client = selected_client
+                st.session_state.selected_clients = selected_clients
                 st.session_state.selected_doc_type = selected_doc_type
                 
-                search_results = backend.search_documents(
-                    query=final_query,
-                    client_filter=selected_client if selected_client != "All" else None,
-                    document_type_filter=selected_doc_type if selected_doc_type != "All" else None,
-                    top_k=num_results,
-                    min_relevance=min_relevance
-                )
-                st.session_state.search_results = search_results
+                if len(selected_clients) > 1:
+                    # Multi-client search
+                    multi_results = backend.search_multiple_clients(
+                        query=final_query,
+                        client_filters=selected_clients,
+                        document_type_filter=selected_doc_type if selected_doc_type != "All" else None,
+                        top_k=num_results
+                    )
+                    st.session_state.multi_search_results = multi_results
+                    st.session_state.search_results = None
+                else:
+                    # Single client search
+                    single_client = selected_clients[0] if selected_clients else None
+                    search_results = backend.search_documents(
+                        query=final_query,
+                        client_filter=single_client,
+                        document_type_filter=selected_doc_type if selected_doc_type != "All" else None,
+                        top_k=num_results,
+                        min_relevance=min_relevance
+                    )
+                    st.session_state.search_results = search_results
+                    st.session_state.multi_search_results = None
                 
                 # Log the search operation
                 try:
                     from utils.usage_logger import log_search, log_predefined_query_usage
-                    log_search(
-                        query=final_query,
-                        client_filter=selected_client if selected_client != "All" else None,
-                        doc_type_filter=selected_doc_type if selected_doc_type != "All" else None,
-                        result_count=search_results.total_documents,
-                        processing_time=search_results.processing_time
-                    )
+                    if len(selected_clients) > 1:
+                        log_search(
+                            query=final_query,
+                            client_filter=", ".join(selected_clients),
+                            doc_type_filter=selected_doc_type if selected_doc_type != "All" else None,
+                            result_count=len(selected_clients),
+                            processing_time=multi_results.total_processing_time
+                        )
+                    else:
+                        log_search(
+                            query=final_query,
+                            client_filter=selected_clients[0] if selected_clients else None,
+                            doc_type_filter=selected_doc_type if selected_doc_type != "All" else None,
+                            result_count=search_results.total_documents,
+                            processing_time=search_results.processing_time
+                        )
                     
-                    # Log predefined query usage if applicable
                     if selected_query:
                         log_predefined_query_usage(selected_query.id, selected_query.title)
                 except Exception:
-                    # Don't break the app if logging fails
                     pass
                 
                 # Add to search history
                 from utils.session_state import add_to_search_history
-                add_to_search_history(
-                    final_query,
-                    selected_client,
-                    selected_doc_type,
-                    search_results.total_documents,
-                    search_results.processing_time
-                )
+                if len(selected_clients) > 1:
+                    add_to_search_history(
+                        final_query,
+                        ", ".join(selected_clients),
+                        selected_doc_type,
+                        len(selected_clients),
+                        multi_results.total_processing_time
+                    )
+                else:
+                    add_to_search_history(
+                        final_query,
+                        selected_clients[0] if selected_clients else "None",
+                        selected_doc_type,
+                        search_results.total_documents,
+                        search_results.processing_time
+                    )
         else:
-            st.error("Please enter a custom query or select a predefined query.")
+            if not final_query:
+                st.error("Please enter a custom query or select a predefined query.")
+            if not selected_clients:
+                st.error("Please select at least one client.")
     
+    # Display results - handle both single and multi-client
     if 'search_results' in st.session_state and st.session_state.search_results:
+        # Single client results
         results = st.session_state.search_results
         
         st.markdown("---")
@@ -181,7 +218,7 @@ def show_legal_search_page():
         # Add search debug information
         display_search_debug_info(
             results.query,
-            results.client_filter or "All clients",
+            results.client_filter or "Selected client",
             st.session_state.get('selected_doc_type', 'All'),
             len(results.snippets)
         )
@@ -200,3 +237,77 @@ def show_legal_search_page():
                 "No document snippets were found for your query. Try adjusting your search terms or client filter.",
                 "warning"
             )
+    
+    elif 'multi_search_results' in st.session_state and st.session_state.multi_search_results:
+        # Multi-client results
+        multi_results = st.session_state.multi_search_results
+        
+        st.markdown("---")
+        
+        # Display tabular summary as the main answer (most important part first)
+        st.markdown("### Answer")
+        st.markdown(multi_results.tabular_summary)
+        
+        st.markdown("---")
+        
+        # Query used and search results section
+        st.markdown("### Query used and search results")
+        
+        # Show the query used
+        st.markdown("**Query:**")
+        st.markdown(f"""
+        <div style="
+            background-color: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        ">
+            <div style="color: #374151; font-style: italic;">
+                "{multi_results.query}"
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("**Search results:**")
+        
+        # Display processing time metrics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Clients searched", len(multi_results.client_results))
+        with col2:
+            st.metric("Total processing time", f"{multi_results.total_processing_time:.2f}s")
+        with col3:
+            st.metric("Search status", "✅ Complete")
+        
+        # Display individual client results in an expandable section
+        if multi_results.client_search_results:
+            with st.expander("📄 Individual client results (Click to expand)", expanded=False):
+                client_tabs = st.tabs(list(multi_results.client_search_results.keys()))
+                
+                for i, (client, client_result) in enumerate(multi_results.client_search_results.items()):
+                    with client_tabs[i]:
+                        st.markdown(f"#### {client}")
+                        
+                        # Show client-specific summary
+                        st.markdown("**AI answer:**")
+                        st.markdown(f"""
+                        <div style="
+                            background-color: #f8f9fa;
+                            border: 1px solid #dee2e6;
+                            border-radius: 0.4rem;
+                            padding: 0.8rem;
+                            margin-bottom: 1rem;
+                            font-size: 0.95rem;
+                        ">
+                            {client_result.summary}
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Show snippets for this client
+                        if client_result.snippets:
+                            st.markdown(f"**Document snippets ({len(client_result.snippets)}):**")
+                            for idx, snippet in enumerate(client_result.snippets):
+                                display_document_snippet(snippet, f"{client}_{idx}")
+                        else:
+                            st.info("No document snippets found for this client.")

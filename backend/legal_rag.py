@@ -13,7 +13,8 @@ API_KEY = "2jIpWCyNRg3Y8lkbmWG0tkyXwYlJn5QaZ1F3yKf7"
 S3_BUCKET = "ml-legal-restricted"
 VECTOR_BUCKET_NAME = "legal-docs-vector-store"
 EMBEDDINGS_URL = "https://zgggzg2iqg.execute-api.us-east-1.amazonaws.com/dev/get_embeddings"
-INDEX_NAME = 'token-chunking-poc'
+# INDEX_NAME = 'token-chunking-poc'
+INDEX_NAME = 'token-chunking-metadata-enriched'
 
 AZURE_OPENAI_ENDPOINT = "https://ironclad-openai-001.openai.azure.com/"
 AZURE_OPENAI_API_KEY = "936856630b764210913d9a8fd6c8212b"
@@ -88,14 +89,12 @@ class LegalRAGBackend:
 
     def query_s3_vector_store(self, query_text: str, client_account_filter: Optional[str] = None, 
                                document_type_filter: Optional[str] = None, top_k: int = 5):
-        print(f"\n--- Processing Query: '{query_text}' ---")
-
         query_embedding = self.get_text_embedding(query_text)
         filter_expression = {}
         
         # Build filter expression with multiple conditions
         if client_account_filter and client_account_filter != "All":
-            filter_expression["client_account"] = {"$eq": client_account_filter}
+            filter_expression["client_account_details"] = {"$in": [client_account_filter]}
             
         if document_type_filter and document_type_filter != "All":
             filter_expression["document_type"] = {"$eq": document_type_filter}
@@ -115,9 +114,10 @@ class LegalRAGBackend:
                 returnDistance=True,
                 filter=final_filter
             )
+            
             return response
         except Exception as e:
-            print(f"Error querying S3 Vector Store: {e}")
+            print(f"❌ Error querying S3 Vector Store: {e}")
             return None
 
     def build_prompt(self, query: str, top_chunks: Dict[str, Any]):
@@ -163,7 +163,18 @@ Answer:"""
             print("❗ No chunks returned from vector store.")
             return None, {}, 0, []
 
+        print(f"✅ Chunks response received: {type(chunks)}")
+        print(f"Chunks keys: {list(chunks.keys()) if chunks else 'None'}")
+        
+        vectors = chunks.get('vectors', [])
+        print(f"Number of vectors in chunks: {len(vectors)}")
+        
+        if not vectors:
+            print("❌ No vectors in chunks response!")
+            return None, {}, 0, []
+
         prompt, refs = self.build_prompt(query, chunks)
+        print(f"Context length: {len(prompt)}")
 
         response = self.azure_client.chat.completions.create(
             model=AZURE_DEPLOYMENT_NAME,
