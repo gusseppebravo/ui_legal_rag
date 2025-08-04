@@ -30,3 +30,8 @@ dev-dependencies = [
     "black>=23.0.0",
     "flake8>=6.0.0",
 ]
+
+[tool.uv.workspace]
+members = [
+    "evals",
+]
