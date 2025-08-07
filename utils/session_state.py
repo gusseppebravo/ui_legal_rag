@@ -15,6 +15,15 @@ def initialize_session_state():
     if 'selected_client' not in st.session_state:
         st.session_state.selected_client = "All"
     
+    if 'selected_account_type' not in st.session_state:
+        st.session_state.selected_account_type = "All"
+    
+    if 'selected_solution_line' not in st.session_state:
+        st.session_state.selected_solution_line = "All"
+    
+    if 'selected_related_product' not in st.session_state:
+        st.session_state.selected_related_product = "All"
+    
     if 'selected_document' not in st.session_state:
         st.session_state.selected_document = None
     
@@ -37,12 +46,17 @@ def initialize_session_state():
     if 'search_history' not in st.session_state:
         st.session_state.search_history = []
 
-def add_to_search_history(query: str, client_filter: str, document_type_filter: str, results_count: int, processing_time: float):
+def add_to_search_history(query: str, client_filter: str, document_type_filter: str, 
+                         account_type_filter: str = None, solution_line_filter: str = None, 
+                         related_product_filter: str = None, results_count: int = 0, processing_time: float = 0.0):
     """Add a search to the history"""
     history_item = {
         'query': query,
         'client_filter': client_filter or "All",
         'document_type_filter': document_type_filter or "All",
+        'account_type_filter': account_type_filter or "All",
+        'solution_line_filter': solution_line_filter or "All",
+        'related_product_filter': related_product_filter or "All",
         'results_count': results_count,
         'processing_time': processing_time,
         'timestamp': datetime.now().strftime("%H:%M:%S")

@@ -6,11 +6,12 @@ def show_document_viewer_page():
         st.error("No document selected. Please go back to search and select a document.")
         return
     
-    # Check for either single or multi-client search results
+    # Check for single, multi-client, or all questions search results
     has_single_results = 'search_results' in st.session_state and st.session_state.search_results
     has_multi_results = 'multi_search_results' in st.session_state and st.session_state.multi_search_results
+    has_all_questions = 'all_questions_results' in st.session_state and st.session_state.all_questions_results
     
-    if not has_single_results and not has_multi_results:
+    if not has_single_results and not has_multi_results and not has_all_questions:
         st.error("No search results found. Please go back and perform a search first.")
         return
     
@@ -35,6 +36,24 @@ def show_document_viewer_page():
                 for snippet in client_results.snippets:
                     if snippet.id == document_id:
                         selected_snippet = snippet
+                        break
+                if selected_snippet:
+                    break
+    
+    # If not found, try all questions results
+    if not selected_snippet and has_all_questions:
+        all_q_results = st.session_state.all_questions_results
+        if 'search_results' in all_q_results:
+            for question, client_results in all_q_results['search_results'].items():
+                for client, search_result in client_results.items():
+                    if search_result and search_result.snippets:
+                        for snippet in search_result.snippets:
+                            if snippet.id == document_id:
+                                selected_snippet = snippet
+                                break
+                        if selected_snippet:
+                            break
+                    if selected_snippet:
                         break
                 if selected_snippet:
                     break
@@ -95,9 +114,9 @@ def show_document_viewer_page():
     # Extract client name
     client_name = "N/A"
     if selected_snippet.metadata:
-        client_account_details = selected_snippet.metadata.get("client_account_details", [])
-        if isinstance(client_account_details, list) and len(client_account_details) > 0:
-            client_name = client_account_details[0] if client_account_details[0] else "N/A"
+        account_details = selected_snippet.metadata.get("account_details", [])
+        if isinstance(account_details, list) and len(account_details) > 0:
+            client_name = account_details[0] if account_details[0] else "N/A"
         else:
             # Fallback to old structure if needed
             client_account = selected_snippet.metadata.get("client_account", "N/A")

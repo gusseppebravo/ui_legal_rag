@@ -27,6 +27,7 @@ class LegalRAGBackend:
         self.s3v = boto3.client("s3vectors", region_name="us-east-1")
         self.azure_client = self._load_azure_client()
         self.clients_data = self._load_clients_data()
+        self.filter_values = self._load_filter_values()
         
     def _load_azure_client(self) -> AzureOpenAI:
         return AzureOpenAI(
@@ -35,16 +36,33 @@ class LegalRAGBackend:
             azure_endpoint=AZURE_OPENAI_ENDPOINT
         )
     
-    def _load_clients_data(self) -> List[str]:
+    def _load_clients_data(self) -> Dict[str, List[str]]:
         try:
-            csv_path = "files_per_client_summary.csv"
+            csv_path = "files_per_client_summary-new.csv"
             df = pd.read_csv(csv_path)
-            clients = ["All"] + df['client_account'].tolist()
-            return clients
+            
+            # Group accounts by type
+            clients = df[df['account_type'] == 'Client']['account_name'].tolist()
+            vendors = df[df['account_type'] == 'Vendor']['account_name'].tolist()
+            
+            return {
+                'Client': clients,
+                'Vendor': vendors,
+                'All': clients + vendors
+            }
         except Exception as e:
             print(f"Error loading clients data: {e}")
-            return ["All"]
-    
+            return {'Client': [], 'Vendor': [], 'All': []}
+
+    def _load_filter_values(self) -> dict:
+        try:
+            json_path = "unique_values_filter.json"
+            with open(json_path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading filter values: {e}")
+            return {}
+
     def get_text_embedding(self, texts, model='e5_mistral_embed_384'):
         if isinstance(texts, str):
             texts = [texts]
@@ -88,16 +106,27 @@ class LegalRAGBackend:
         return embeddings[0] if len(embeddings) == 1 else embeddings
 
     def query_s3_vector_store(self, query_text: str, client_account_filter: Optional[str] = None, 
-                               document_type_filter: Optional[str] = None, top_k: int = 5):
+                               document_type_filter: Optional[str] = None, account_type_filter: Optional[str] = None,
+                               solution_line_filter: Optional[str] = None, related_product_filter: Optional[str] = None,
+                               top_k: int = 5):
         query_embedding = self.get_text_embedding(query_text)
         filter_expression = {}
         
         # Build filter expression with multiple conditions
         if client_account_filter and client_account_filter != "All":
-            filter_expression["client_account_details"] = {"$in": [client_account_filter]}
+            filter_expression["account_details"] = {"$in": [client_account_filter]}
             
         if document_type_filter and document_type_filter != "All":
             filter_expression["document_type"] = {"$eq": document_type_filter}
+
+        if account_type_filter and account_type_filter != "All":
+            filter_expression["account_details"] = {"$in": [account_type_filter]}
+
+        if solution_line_filter and solution_line_filter != "All":
+            filter_expression["solution_line"] = {"$eq": solution_line_filter}
+
+        if related_product_filter and related_product_filter != "All":
+            filter_expression["account_details"] = {"$in": [related_product_filter]}
 
         # Only apply filter if we have conditions
         final_filter = filter_expression if filter_expression else None
@@ -153,11 +182,14 @@ Answer:"""
         return prompt, source_refs
 
     def run_query_pipeline(self, query: str, client_filter: Optional[str] = None, 
-                          document_type_filter: Optional[str] = None, top_k: int = 5):
+                          document_type_filter: Optional[str] = None, account_type_filter: Optional[str] = None,
+                          solution_line_filter: Optional[str] = None, related_product_filter: Optional[str] = None,
+                          top_k: int = 5):
         print(f"\n🔍 Running RAG query for: {query}\n")
         start = time.time()
 
-        chunks = self.query_s3_vector_store(query, client_filter, document_type_filter, top_k=top_k)
+        chunks = self.query_s3_vector_store(query, client_filter, document_type_filter, 
+                                           account_type_filter, solution_line_filter, related_product_filter, top_k=top_k)
 
         if not chunks:
             print("❗ No chunks returned from vector store.")
@@ -220,10 +252,44 @@ Answer:"""
             return None
 
     def get_clients(self) -> List[str]:
-        return self.clients_data
+        return ["All"] + self.clients_data['All']
+    
+    def get_accounts_by_type(self, account_type: str) -> List[str]:
+        if account_type == "All":
+            return self.clients_data['All']
+        return self.clients_data.get(account_type, [])
 
     def get_document_types(self) -> List[str]:
-        return ["All", "Contract", "Amendment", "Addendum", "SOW", "MSA", "Agreement", "Policy"]
+        try:
+            doc_types = self.filter_values.get("document_type", [])
+            return ["All"] + doc_types
+        except Exception as e:
+            print(f"Error getting document types: {e}")
+            return ["All"]
+
+    def get_account_types(self) -> List[str]:
+        try:
+            account_types = self.filter_values.get("account_type", [])
+            return ["All"] + account_types
+        except Exception as e:
+            print(f"Error getting account types: {e}")
+            return ["All", "Client", "Vendor"]
+
+    def get_solution_lines(self) -> List[str]:
+        try:
+            solution_lines = self.filter_values.get("solution_line", [])
+            return ["All"] + solution_lines
+        except Exception as e:
+            print(f"Error getting solution lines: {e}")
+            return ["All"]
+
+    def get_related_products(self) -> List[str]:
+        try:
+            related_products = self.filter_values.get("related_product", [])
+            return ["All"] + related_products
+        except Exception as e:
+            print(f"Error getting related products: {e}")
+            return ["All"]
 
     def get_predefined_queries(self) -> List[Dict[str, str]]:
         return [

@@ -153,23 +153,34 @@ def create_info_box(title: str, content: str, type: str = "info"):
     elif type == "success":
         st.success(f"**{title}**\n\n{content}")
 
-def display_search_debug_info(query: str, client_filter: str, document_type_filter: str, total_chunks: int):
+def display_search_debug_info(query: str, client_filter: str, document_type_filter: str, 
+                             account_type_filter: str = None, solution_line_filter: str = None, 
+                             related_product_filter: str = None, total_chunks: int = 0):
     with st.expander("🔍 Search details", expanded=False):
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2 = st.columns(2)
         
         with col1:
             st.markdown("**Query:**")
             st.text(query[:80] + "..." if len(query) > 80 else query)
-        
-        with col2:
+            
             st.markdown("**Client filter:**")
             st.write(client_filter or "All clients")
-        
-        with col3:
+            
             st.markdown("**Document type:**")
             st.write(document_type_filter or "All types")
         
-        with col4:
+        with col2:
+            st.markdown("**Account type:**")
+            st.write(account_type_filter or "All")
+            
+            if solution_line_filter and solution_line_filter != "All":
+                st.markdown("**Solution line:**")
+                st.write(solution_line_filter)
+            
+            if related_product_filter and related_product_filter != "All":
+                st.markdown("**Related product:**")
+                st.write(related_product_filter)
+            
             st.markdown("**Results:**")
             st.write(f"{total_chunks} chunks")
         

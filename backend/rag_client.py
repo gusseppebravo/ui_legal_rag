@@ -1,3 +1,4 @@
+import json
 from typing import List, Optional
 import os
 import pickle
@@ -12,10 +13,21 @@ class RAGClient:
         self.cache_dir = "cache"
         if self.use_cache:
             os.makedirs(self.cache_dir, exist_ok=True)
+        self.filter_values = self._load_filter_values()
     
-    def _get_cache_key(self, query: str, client_filter: str, document_type_filter: str, top_k: int) -> str:
+    def _load_filter_values(self) -> dict:
+        try:
+            json_path = "unique_values_filter.json"
+            with open(json_path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading filter values: {e}")
+            return {}
+    
+    def _get_cache_key(self, query: str, client_filter: str, document_type_filter: str, 
+                      account_type_filter: str, solution_line_filter: str, related_product_filter: str, top_k: int) -> str:
         """Generate a cache key from search parameters"""
-        cache_string = f"{query}|{client_filter}|{document_type_filter}|{top_k}"
+        cache_string = f"{query}|{client_filter}|{document_type_filter}|{account_type_filter}|{solution_line_filter}|{related_product_filter}|{top_k}"
         return hashlib.md5(cache_string.encode()).hexdigest()
     
     def _get_from_cache(self, cache_key: str):
@@ -38,7 +50,8 @@ class RAGClient:
         except Exception:
             pass  # Don't break if caching fails
     
-    def _cached_search(self, query: str, client_filter: str, document_type_filter: str, top_k: int):
+    def _cached_search(self, query: str, client_filter: str, document_type_filter: str,
+                      account_type_filter: str, solution_line_filter: str, related_product_filter: str, top_k: int):
         """Search with optional disk-based caching"""
         # If caching is disabled, directly call the backend
         if not self.use_cache:
@@ -46,11 +59,15 @@ class RAGClient:
                 query=query,
                 client_filter=client_filter if client_filter != "None" else None,
                 document_type_filter=document_type_filter if document_type_filter != "None" else None,
+                account_type_filter=account_type_filter if account_type_filter != "None" else None,
+                solution_line_filter=solution_line_filter if solution_line_filter != "None" else None,
+                related_product_filter=related_product_filter if related_product_filter != "None" else None,
                 top_k=top_k
             )
         
         # Caching is enabled
-        cache_key = self._get_cache_key(query, client_filter, document_type_filter, top_k)
+        cache_key = self._get_cache_key(query, client_filter, document_type_filter, 
+                                       account_type_filter, solution_line_filter, related_product_filter, top_k)
         
         # Try to get from cache first
         cached_result = self._get_from_cache(cache_key)
@@ -62,6 +79,9 @@ class RAGClient:
             query=query,
             client_filter=client_filter if client_filter != "None" else None,
             document_type_filter=document_type_filter if document_type_filter != "None" else None,
+            account_type_filter=account_type_filter if account_type_filter != "None" else None,
+            solution_line_filter=solution_line_filter if solution_line_filter != "None" else None,
+            related_product_filter=related_product_filter if related_product_filter != "None" else None,
             top_k=top_k
         )
         
@@ -86,18 +106,51 @@ class RAGClient:
     
     def get_document_types(self) -> List[str]:
         try:
-            return self.rag_backend.get_document_types()
+            doc_types = self.filter_values.get("document_type", [])
+            return ["All"] + doc_types
         except Exception as e:
             print(f"Error getting document types: {e}")
             return ["All"]
     
-    def search_documents(self, query: str, client_filter: Optional[str] = None, document_type_filter: Optional[str] = None, top_k: int = 5, min_relevance: float = 0.0) -> SearchResult:
+    def get_account_types(self) -> List[str]:
+        try:
+            account_types = self.filter_values.get("account_type", [])
+            return ["All"] + account_types
+            # return ["All"] + account_types
+        except Exception as e:
+            print(f"Error getting account types: {e}")
+            return ["All", "Client", "Vendor"]
+
+    def get_solution_lines(self) -> List[str]:
+        try:
+            solution_lines = self.filter_values.get("solution_line", [])
+            return ["All"] + solution_lines
+        except Exception as e:
+            print(f"Error getting solution lines: {e}")
+            return ["All"]
+
+    def get_related_products(self) -> List[str]:
+        try:
+            related_products = self.filter_values.get("related_product", [])
+            return ["All"] + related_products
+        except Exception as e:
+            print(f"Error getting related products: {e}")
+            return ["All"]
+    
+    def search_documents(self, query: str, client_filter: Optional[str] = None, 
+                        document_type_filter: Optional[str] = None, account_type_filter: Optional[str] = None,
+                        solution_line_filter: Optional[str] = None, related_product_filter: Optional[str] = None,
+                        top_k: int = 5, min_relevance: float = 0.0) -> SearchResult:
         try:
             # Use cached search with string keys for hashability
             cache_client = client_filter or "None"
             cache_doc_type = document_type_filter or "None"
+            cache_account_type = account_type_filter or "None"
+            cache_solution_line = solution_line_filter or "None"
+            cache_related_product = related_product_filter or "None"
             
-            answer, refs, latency, chunks = self._cached_search(query, cache_client, cache_doc_type, top_k)
+            answer, refs, latency, chunks = self._cached_search(query, cache_client, cache_doc_type, 
+                                                              cache_account_type, cache_solution_line, cache_related_product, top_k)
             
             snippets = []
             for i, chunk in enumerate(chunks):
@@ -110,11 +163,11 @@ class RAGClient:
                 if not file_name and s3_path:
                     file_name = s3_path.split('/')[-1] if '/' in s3_path else s3_path
                 
-                # Handle new metadata structure: client_account_details[0] is client name
+                # Handle new metadata structure: account_details[0] is client name, [2] is account type, [3] is related product
                 client_account = "Unknown"
-                client_account_details = metadata.get("client_account_details", [])
-                if isinstance(client_account_details, list) and len(client_account_details) > 0:
-                    client_account = client_account_details[0] if client_account_details[0] else "Unknown"
+                account_details = metadata.get("account_details", [])
+                if isinstance(account_details, list) and len(account_details) > 0:
+                    client_account = account_details[0] if account_details[0] else "Unknown"
                 else:
                     # Fallback to old structure if needed
                     client_account = metadata.get("client_account", "Unknown")
@@ -183,7 +236,9 @@ class RAGClient:
                 processing_time=0.0
             )
     
-    def search_multiple_clients(self, query: str, client_filters: List[str], document_type_filter: Optional[str] = None, top_k: int = 5) -> MultiClientResult:
+    def search_multiple_clients(self, query: str, client_filters: List[str], document_type_filter: Optional[str] = None,
+                               account_type_filter: Optional[str] = None, solution_line_filter: Optional[str] = None,
+                               related_product_filter: Optional[str] = None, top_k: int = 5) -> MultiClientResult:
         import time
         start_time = time.time()
         
@@ -197,7 +252,12 @@ class RAGClient:
             try:
                 # Use cached search for individual clients
                 cache_doc_type = document_type_filter or "None"
-                answer, _, latency, chunks = self._cached_search(query, client, cache_doc_type, top_k)
+                cache_account_type = account_type_filter or "None"
+                cache_solution_line = solution_line_filter or "None"
+                cache_related_product = related_product_filter or "None"
+                
+                answer, _, latency, chunks = self._cached_search(query, client, cache_doc_type,
+                                                                cache_account_type, cache_solution_line, cache_related_product, top_k)
                 client_results[client] = answer or "No answer found"
                 
                 # Store full search results for each client
@@ -212,11 +272,11 @@ class RAGClient:
                     if not file_name and s3_path:
                         file_name = s3_path.split('/')[-1] if '/' in s3_path else s3_path
                     
-                    # Handle new metadata structure: client_account_details[0] is client name
+                    # Handle new metadata structure: account_details[0] is client name, [2] is account type, [3] is related product
                     client_account = "Unknown"
-                    client_account_details = metadata.get("client_account_details", [])
-                    if isinstance(client_account_details, list) and len(client_account_details) > 0:
-                        client_account = client_account_details[0] if client_account_details[0] else "Unknown"
+                    account_details = metadata.get("account_details", [])
+                    if isinstance(account_details, list) and len(account_details) > 0:
+                        client_account = account_details[0] if account_details[0] else "Unknown"
                     else:
                         # Fallback to old structure if needed
                         client_account = metadata.get("client_account", "Unknown")
@@ -288,10 +348,12 @@ Query: {query}
 Individual Client Responses:
 {context}
 
-Create a markdown table with two columns: "Client" and "Answer summary". Keep answers concise but informative.
+Create a markdown table with three columns: "Client", "Answer" and "Summary". 
+In the Answer column directly answer the question, maybe Yes, No, Yes with limitation, etc.
+In the Summary column keep summary concise but informative.
 Focus on key findings, permissions, restrictions, or requirements for each client.
 
-Only give the markdown table. No comments."""
+Only give the markdown table (do not include ```markdown ```, only give raw markdown). No comments."""
 
         try:
             response = self.rag_backend.azure_client.chat.completions.create(
@@ -304,3 +366,10 @@ Only give the markdown table. No comments."""
             return response.choices[0].message.content.strip()
         except Exception as e:
             return f"Error generating summary: {str(e)}"
+    
+    def get_accounts_by_type(self, account_type: str) -> List[str]:
+        try:
+            return self.rag_backend.get_accounts_by_type(account_type)
+        except Exception as e:
+            print(f"Error getting accounts by type: {e}")
+            return []

@@ -13,7 +13,7 @@ if 'backend' not in st.session_state:
 def show_sidebar():
     """Display sidebar with navigation and quick stats"""
     with st.sidebar:
-        st.markdown("### 📋 Legal RAG")
+        st.markdown("### 📋Contract intelligence")
         st.markdown("---")
         
         # Navigation
@@ -89,7 +89,8 @@ def show_top_nav():
     
     with col1:
         if st.session_state.current_page == "search":
-            st.markdown("# 🔍")
+            # st.markdown("# 🔍")
+            st.image("assets/logo.png")
         else:
             st.markdown("# 📄")
     
