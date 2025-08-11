@@ -1,0 +1,132 @@
+import streamlit as st
+from datetime import datetime
+
+APP_VERSION = "0.25.08.11"
+APP_NAME = "Legal RAG"
+
+CHANGELOG = [
+    {
+        "version": "0.25.08.11",
+        "date": "August 11, 2025",
+        "highlights": [
+            "🚀 Added automatic server status checking on startup",
+            "🔧 Removed confusing navigation buttons from sidebar", 
+            "📊 Added app info popover with changelog",
+            "⚡ Improved user experience with automatic server health monitoring"
+        ],
+        "changes": [
+            "Server status page now automatically checks embedding server health",
+            "Cold start functionality for Ray cluster embedding server",
+            "Simplified sidebar navigation by removing redundant buttons",
+            "Added version tracking and changelog display",
+            "Auto-refresh functionality with 1-minute intervals for server startup"
+        ]
+    },
+    {
+        "version": "0.25.08.08", 
+        "date": "August 08, 2025",
+        "highlights": [
+            "🎯 Enhanced search filtering capabilities",
+            "📈 Improved search result metrics display",
+            "🔍 Added search history functionality"
+        ],
+        "changes": [
+            "Multi-client search support with advanced filtering",
+            "Advanced search parameters (relevance threshold, result count)",
+            "Search history tracking and replay functionality",
+            "Better filter state management across sessions",
+            "Improved document type and solution line filtering"
+        ]
+    },
+    {
+        "version": "0.25.08.07",
+        "date": "August 7, 2025", 
+        "highlights": [
+            "🎨 Enhanced UI/UX design",
+            "📱 Better responsive layout",
+            "🔄 Improved session state management"
+        ],
+        "changes": [
+            "Redesigned sidebar with better organization",
+            "Added contextual document viewer navigation",
+            "Improved filter persistence across page reloads",
+            "Better error handling and user feedback",
+            "Enhanced search result presentation"
+        ]
+    }
+]
+
+def show_app_info_popover():
+    """Display app info and changelog in a popover"""
+    if st.button("ℹ️ App info", use_container_width=True, type="secondary"):
+        st.session_state.show_app_info = not st.session_state.get('show_app_info', False)
+    
+    if st.session_state.get('show_app_info', False):
+        with st.container():
+            st.markdown("---")
+            
+            # App version header
+            st.markdown(f"""
+            <div style="text-align: center; padding: 1rem 0; background-color: #f0f2f6; border-radius: 10px; margin-bottom: 1rem;">
+                <h2 style="margin: 0; color: #262730;">{APP_NAME}</h2>
+                <h3 style="margin: 0.5rem 0; color: #262730;">Version {APP_VERSION} (latest)</h3>
+                <p style="color: #666; margin: 0;">Release date: {datetime.now().strftime('%B %d, %Y')}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Dataset info section
+            backend = st.session_state.backend
+            clients = backend.get_clients()
+            queries = backend.get_predefined_queries()
+            
+            st.markdown("**📊 Dataset information**")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Accounts", len(clients) - 1)
+            with col2:
+                st.metric("Predefined queries", len(queries))
+            
+            if 'search_results' in st.session_state and st.session_state.search_results:
+                results = st.session_state.search_results
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Last results", results.total_documents)
+                with col2:
+                    st.metric("Search time", f"{results.processing_time:.2f}s")
+            
+            st.markdown("---")
+            
+            # Changelog section
+            st.markdown("**📝 Changelog**")
+            
+            for i, version_info in enumerate(CHANGELOG):
+                is_latest = i == 0
+                expanded = is_latest
+                
+                with st.expander(f"Version {version_info['version']} {'(latest)' if is_latest else ''} - {version_info['date']}", expanded=expanded):
+                    
+                    if version_info.get('highlights'):
+                        st.markdown("**Highlights**")
+                        for highlight in version_info['highlights']:
+                            st.markdown(f"• {highlight}")
+                        st.markdown("")
+                    
+                    if version_info.get('changes'):
+                        st.markdown("**Notable changes**")
+                        for change in version_info['changes']:
+                            st.markdown(f"• {change}")
+            
+            st.markdown("---")
+            
+            # Close button
+            if st.button("✕ Close", key="close_app_info", type="primary", use_container_width=True):
+                st.session_state.show_app_info = False
+                st.rerun()
+
+def get_app_version():
+    """Get current app version"""
+    return APP_VERSION
+
+def get_app_name():
+    """Get app name"""
+    return APP_NAME

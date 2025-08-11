@@ -137,151 +137,63 @@ def _style_questions_matrix(df: pd.DataFrame) -> pd.DataFrame:
     return df.style.applymap(color_cell, subset=styled_cols)
 
 def show_legal_search_page():
-    # Check if document is selected and show quick access
     from utils.session_state import has_selected_document
     if has_selected_document():
         st.info("📄 Document selected - use sidebar to view")
     
     backend = st.session_state.backend
-    with st.container():
-        # st.subheader("Search Configuration")
-        
-        # Query selection in a more compact layout
-        col1, col2 = st.columns([3, 2])
-        
-        with col1:
-            st.markdown("**Query selection**")
-            
-            predefined_queries = backend.get_predefined_queries()
-            query_options = ["All questions"] + [q.query_text for q in predefined_queries]
-            
-            selected_query_text = st.selectbox(
-                "Predefined queries:",
-                options=query_options,
-                key="query_selector",
-                label_visibility="collapsed"
-            )
-            
-            selected_query = None
-            run_all_questions = False
-            
-            if selected_query_text == "All questions":
-                run_all_questions = True
-            else:
-                selected_query = next(
-                    (q for q in predefined_queries if q.query_text == selected_query_text),
-                    None
-                )
-            
-            custom_query = st.text_area(
-                "Or enter custom query:",
-                value=st.session_state.get('custom_query', ''),
-                height=80,
-                placeholder="Type your custom legal document query here...",
-                key="custom_query_input"
-            )
-        
-        with col2:
-            # st.markdown("**Filters & Settings**")
-            
-            # Account type filter first
-            account_types = backend.get_account_types()
-            try:
-                default_index = account_types.index('Client')
-            except ValueError:
-                default_index = 0
-            
-            selected_account_type = st.selectbox(
-                "Account type:",
-                options=account_types,
-                index=default_index,
-                key="account_type_selector"
-            )
-            
-            document_types = backend.get_document_types()
-            selected_doc_type = st.selectbox(
-                "Document type:",
-                options=document_types,
-                index=document_types.index(st.session_state.get('selected_doc_type', 'All')),
-                key="doc_type_selector"
-            )
-            
-            # Conditional filters for Client account type
-            selected_clients = []
-            selected_solution_line = None
-            selected_related_product = None
-            
-            if selected_account_type == "Client":
-                accounts = backend.get_accounts_by_type("Client")
-                
-                selected_clients = st.multiselect(
-                    "Account(s):",
-                    options=accounts,
-                    default=st.session_state.get('selected_clients', []),
-                    key="client_selector"
-                )
-                
-                solution_lines = backend.get_solution_lines()
-                selected_solution_line = st.selectbox(
-                    "Solution line:",
-                    options=solution_lines,
-                    index=solution_lines.index(st.session_state.get('selected_solution_line', 'All')),
-                    key="solution_line_selector"
-                )
-                
-                related_products = backend.get_related_products()
-                selected_related_product = st.selectbox(
-                    "Related product:",
-                    options=related_products,
-                    index=related_products.index(st.session_state.get('selected_related_product', 'All')),
-                    key="related_product_selector"
-                )
-            elif selected_account_type == "Vendor":
-                accounts = backend.get_accounts_by_type("Vendor")
-                
-                selected_clients = st.multiselect(
-                    "Account(s):",
-                    options=accounts,
-                    default=st.session_state.get('selected_clients', []),
-                    key="client_selector"
-                )
-            else:
-                # For All, show all accounts
-                accounts = backend.get_accounts_by_type("All")
-                
-                selected_clients = st.multiselect(
-                    "Account(s):",
-                    options=accounts,
-                    default=st.session_state.get('selected_clients', []),
-                    key="client_selector"
-                )
-            
-            # Advanced search parameters in expander
-            with st.expander("⚙️ Advanced", expanded=False):
-                col2a, col2b = st.columns(2)
-                with col2a:
-                    num_results = st.selectbox(
-                        "Results:",
-                        options=[3, 5, 10, 15],
-                        index=1,  # Default to 5
-                        key="num_results"
-                    )
-                
-                with col2b:
-                    min_relevance = st.selectbox(
-                        "Min relevance:",
-                        options=[0.0, 0.1, 0.2, 0.3, 0.5],
-                        index=0,  # Default to 0.0
-                        key="min_relevance"
-                    )
-            
-            st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
-            search_button = st.button(
-                "🔍 Search",
-                type="secondary",
-                use_container_width=True,
-                key="search_button"
-            )
+    
+    # Get filter values from sidebar (now managed in app.py)
+    selected_account_type = st.session_state.get('account_type_selector', 'Client')
+    selected_doc_type = st.session_state.get('doc_type_selector', 'All')
+    selected_clients = st.session_state.get('client_selector', [])
+    selected_solution_line = st.session_state.get('solution_line_selector', 'All')
+    selected_related_product = st.session_state.get('related_product_selector', 'All')
+    num_results = st.session_state.get('num_results', 5)
+    min_relevance = st.session_state.get('min_relevance', 0.0)
+    
+    # Main content area - query selection and search
+    st.markdown("**Query selection**")
+    
+    predefined_queries = backend.get_predefined_queries()
+    query_options = ["All questions"] + [q.query_text for q in predefined_queries]
+    
+    selected_query_text = st.selectbox(
+        "Predefined queries:",
+        options=query_options,
+        key="query_selector",
+        label_visibility="collapsed"
+    )
+    
+    selected_query = None
+    run_all_questions = False
+    
+    if selected_query_text == "All questions":
+        run_all_questions = True
+    else:
+        selected_query = next(
+            (q for q in predefined_queries if q.query_text == selected_query_text),
+            None
+        )
+    
+    custom_query = st.text_area(
+        "Or enter custom query:",
+        value=st.session_state.get('custom_query', ''),
+        height=60,
+        placeholder="Type your custom legal document query here...",
+        key="custom_query_input"
+    )
+
+    # Compact search button with better styling
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        search_button = st.button(
+            "Search documents",
+            type="secondary",
+            use_container_width=True,
+            key="search_button",
+            icon=":material/search:"
+        )
 
     # Handle query selection logic - both can coexist, but predefined takes priority when searching
     final_query = None

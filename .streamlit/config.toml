@@ -1,6 +1,5 @@
 [server]
 headless = true
-allowRunOnSave = true
 fileWatcherType = "auto"
 
 [browser]

@@ -7,7 +7,7 @@ def setup_page_config():
         page_title="Legal RAG",
         page_icon="📋",
         layout="wide",
-        initial_sidebar_state="expanded"
+        initial_sidebar_state="expanded",
     )
     st.markdown("""
     <style>
@@ -15,12 +15,15 @@ def setup_page_config():
     .stAppDeployButton { display: none; }
     .stApp > header { display: none; }
     
-    /* Hide any development/debug elements */
+    /* Hide development/debug elements but preserve sidebar controls */
     .css-1544g2n { display: none; }
     .css-1d391kg .css-1544g2n { display: none; }
     .stSidebar .css-1544g2n { display: none; }
-    [data-testid="stSidebarNav"] { display: none; }
     .css-1dp5vir { display: none; }
+    
+    /* Ensure sidebar toggle button is visible */
+    [data-testid="collapsedControl"] { display: block !important; }
+    .css-1cypcdb { display: block !important; }
     
     /* Compact sidebar */
     .css-1d391kg { padding-top: 1rem; }
@@ -100,8 +103,8 @@ def display_document_snippet(snippet: DocumentSnippet, index: int):
     </div>
     """, unsafe_allow_html=True)
     
-    # Single button to view chunk
-    if st.button(f"📄 View chunk", key=f"view_doc_{index}", use_container_width=True):
+    # Use popover instead of navigation
+    with st.popover("📄 View chunk", use_container_width=True):
         # Log document view
         try:
             from .usage_logger import log_document_view
@@ -109,11 +112,110 @@ def display_document_snippet(snippet: DocumentSnippet, index: int):
         except Exception:
             pass
         
-        from utils.session_state import set_selected_document
-        set_selected_document(snippet.id)
-        st.rerun()
+        _display_document_details(snippet)
 
     st.markdown("---")
+
+def _display_document_details(snippet: DocumentSnippet):
+    """Display document details in popover"""
+    st.markdown(f"### {snippet.title}")
+    
+    # Document content
+    st.markdown("**Content**")
+    st.markdown(f"""
+    <div style="
+        background-color: #f8f9fa; 
+        padding: 1rem; 
+        border-radius: 0.4rem; 
+        border-left: 3px solid #007bff;
+        margin: 0.5rem 0;
+        line-height: 1.5;
+        font-size: 0.9rem;
+        max-height: 300px;
+        overflow-y: auto;
+    ">
+        {snippet.content}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Extract metadata
+    contract_number = "N/A"
+    if snippet.metadata and 's3_path' in snippet.metadata:
+        s3_path = snippet.metadata['s3_path']
+        if '/contract-docs/' in s3_path:
+            path_parts = s3_path.split('/contract-docs/')
+            if len(path_parts) > 1:
+                remaining_path = path_parts[1]
+                contract_parts = remaining_path.split('/')
+                if contract_parts:
+                    contract_number = contract_parts[0]
+    
+    client_name = "N/A"
+    if snippet.metadata:
+        account_details = snippet.metadata.get("account_details", [])
+        if isinstance(account_details, list) and len(account_details) > 0:
+            client_name = account_details[0] if account_details[0] else "N/A"
+        else:
+            client_account = snippet.metadata.get("client_account", "N/A")
+            if isinstance(client_account, list):
+                client_name = client_account[0] if client_account else "N/A"
+            else:
+                client_name = client_account if client_account != "N/A" else "N/A"
+    
+    def format_value(value):
+        if isinstance(value, list):
+            return ", ".join(str(v) for v in value if v) if value else "N/A"
+        return str(value) if value else "N/A"
+    
+    # Document details table
+    st.markdown("**Document details**")
+    
+    metadata_rows = []
+    metadata_rows.append(f"| **Client** | {client_name} |")
+    metadata_rows.append(f"| **Contract** | {contract_number} |")
+    metadata_rows.append(f"| **Source** | {snippet.source} |")
+    metadata_rows.append(f"| **Document type** | {snippet.section or 'N/A'} |")
+    metadata_rows.append(f"| **Relevance** | {snippet.relevance_score:.3f} |")
+    metadata_rows.append(f"| **Distance** | {snippet.distance:.3f} |")
+    
+    if snippet.metadata:
+        key_fields = {
+            'contract_title': 'Contract title',
+            'solution_line': 'Solution line', 
+            'status_reason': 'Status',
+            'contract_requester': 'Requester',
+            'reviewing_attorney': 'Reviewing attorney',
+            'created_on': 'Created date',
+            'document_effective_date': 'Effective date',
+            'parent_contract': 'Parent contract'
+        }
+        
+        for field, display_name in key_fields.items():
+            if field in snippet.metadata and snippet.metadata[field]:
+                value = format_value(snippet.metadata[field])
+                metadata_rows.append(f"| **{display_name}** | {value} |")
+        
+        if 'dates' in snippet.metadata and snippet.metadata['dates']:
+            dates = snippet.metadata['dates']
+            formatted_dates = format_value(dates)
+            metadata_rows.append(f"| **Key dates** | {formatted_dates} |")
+        
+        if 'attorneys' in snippet.metadata and snippet.metadata['attorneys']:
+            attorneys = snippet.metadata['attorneys']
+            formatted_attorneys = format_value(attorneys)
+            metadata_rows.append(f"| **Legal team** | {formatted_attorneys} |")
+    
+    table_content = "| Field | Value |\n|-------|-------|\n" + "\n".join(metadata_rows)
+    st.markdown(table_content)
+    
+    # Download link if available
+    if snippet.metadata and 'presigned_url' in snippet.metadata:
+        presigned_url = snippet.metadata['presigned_url']
+        if presigned_url:
+            st.markdown("---")
+            st.markdown(f"[📥 Download file]({presigned_url})")
 
 def display_search_summary(summary: str, total_docs: int, processing_time: float):
     st.markdown("### 🤖 AI Answer")

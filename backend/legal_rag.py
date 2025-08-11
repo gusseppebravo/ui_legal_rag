@@ -14,7 +14,8 @@ S3_BUCKET = "ml-legal-restricted"
 VECTOR_BUCKET_NAME = "legal-docs-vector-store"
 EMBEDDINGS_URL = "https://zgggzg2iqg.execute-api.us-east-1.amazonaws.com/dev/get_embeddings"
 # INDEX_NAME = 'token-chunking-poc'
-INDEX_NAME = 'token-chunking-metadata-enriched'
+# INDEX_NAME = 'token-chunking-metadata-enriched'
+INDEX_NAME = 'token-chunking-valid'
 
 AZURE_OPENAI_ENDPOINT = "https://ironclad-openai-001.openai.azure.com/"
 AZURE_OPENAI_API_KEY = "936856630b764210913d9a8fd6c8212b"
@@ -119,14 +120,11 @@ class LegalRAGBackend:
         if document_type_filter and document_type_filter != "All":
             filter_expression["document_type"] = {"$eq": document_type_filter}
 
-        if account_type_filter and account_type_filter != "All":
-            filter_expression["account_details"] = {"$in": [account_type_filter]}
-
         if solution_line_filter and solution_line_filter != "All":
             filter_expression["solution_line"] = {"$eq": solution_line_filter}
 
-        if related_product_filter and related_product_filter != "All":
-            filter_expression["account_details"] = {"$in": [related_product_filter]}
+        # Skip related_product filtering at vector store level - handle in post-processing
+        # Related product is the 4th element in account_details array which is complex to filter
 
         # Only apply filter if we have conditions
         final_filter = filter_expression if filter_expression else None
@@ -143,6 +141,17 @@ class LegalRAGBackend:
                 returnDistance=True,
                 filter=final_filter
             )
+            
+            # Post-process for related_product filtering if needed
+            if related_product_filter and related_product_filter != "All" and response:
+                filtered_vectors = []
+                for vector in response.get('vectors', []):
+                    metadata = vector.get('metadata', {})
+                    account_details = metadata.get('account_details', [])
+                    if (isinstance(account_details, list) and len(account_details) > 3 and 
+                        account_details[3] == related_product_filter):
+                        filtered_vectors.append(vector)
+                response['vectors'] = filtered_vectors
             
             return response
         except Exception as e:

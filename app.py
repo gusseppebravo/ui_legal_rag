@@ -13,24 +13,120 @@ if 'backend' not in st.session_state:
 def show_sidebar():
     """Display sidebar with navigation and quick stats"""
     with st.sidebar:
-        st.markdown("### 📋Contract intelligence")
+        st.logo("assets/contract.png", size='large')
+        # st.markdown("### Contract intelligence")
         st.markdown("---")
         
-        # Navigation
-        st.markdown("**Navigation**")
-        if st.button("🔍 Search", use_container_width=True, type="primary" if st.session_state.current_page == "search" else "secondary"):
-            # Log navigation
-            try:
-                from utils.usage_logger import log_navigation
-                log_navigation(st.session_state.current_page, "search")
-            except Exception:
-                pass
-            st.session_state.current_page = "search"
+        # Filters first (moved from legal_search.py)
+        st.markdown("### 🔧 Filters")
+        
+        backend = st.session_state.backend
+        
+        # Account type filter
+        account_types = backend.get_account_types()
+        try:
+            default_index = account_types.index('Client')
+        except ValueError:
+            default_index = 0
+        
+        selected_account_type = st.selectbox(
+            "Account type:",
+            options=account_types,
+            index=default_index,
+            key="account_type_selector"
+        )
+        
+        document_types = backend.get_document_types()
+        selected_doc_type = st.selectbox(
+            "Document type:",
+            options=document_types,
+            index=document_types.index(st.session_state.get('selected_doc_type', 'All')),
+            key="doc_type_selector"
+        )
+        
+        # Conditional filters for Client account type
+        if selected_account_type == "Client":
+            accounts = backend.get_accounts_by_type("Client")
+            
+            selected_clients = st.multiselect(
+                "Account(s):",
+                options=accounts,
+                default=[],
+                key="client_selector"
+            )
+            
+            solution_lines = backend.get_solution_lines()
+            selected_solution_line = st.selectbox(
+                "Solution line:",
+                options=solution_lines,
+                index=solution_lines.index(st.session_state.get('selected_solution_line', 'All')),
+                key="solution_line_selector"
+            )
+            
+            related_products = backend.get_related_products()
+            selected_related_product = st.selectbox(
+                "Related product:",
+                options=related_products,
+                index=related_products.index(st.session_state.get('selected_related_product', 'All')),
+                key="related_product_selector"
+            )
+        elif selected_account_type == "Vendor":
+            accounts = backend.get_accounts_by_type("Vendor")
+            
+            selected_clients = st.multiselect(
+                "Account(s):",
+                options=accounts,
+                default=[],
+                key="client_selector"
+            )
+        else:
+            accounts = backend.get_accounts_by_type("All")
+            
+            selected_clients = st.multiselect(
+                "Account(s):",
+                options=accounts,
+                default=[],
+                key="client_selector"
+            )
+        
+        # Advanced search parameters
+        with st.expander("⚙️ Advanced", expanded=False):
+            num_results = st.selectbox(
+                "Results:",
+                options=[3, 5, 10, 15],
+                index=1,
+                key="num_results"
+            )
+            
+            min_relevance = st.selectbox(
+                "Min relevance:",
+                options=[0.0, 0.1, 0.2, 0.3, 0.5],
+                index=0,
+                key="min_relevance"
+            )
+        
+        # Clear filters button
+        if st.button("🔄 Clear", use_container_width=True, type="secondary"):
+            # Clear all filter-related session state
+            keys_to_clear = [
+                'account_type_selector', 'doc_type_selector', 'client_selector',
+                'solution_line_selector', 'related_product_selector', 'num_results',
+                'min_relevance', 'query_selector', 'custom_query_input',
+                'selected_clients', 'selected_doc_type', 'selected_account_type',
+                'selected_solution_line', 'selected_related_product', 'custom_query',
+                'search_results', 'multi_search_results', 'all_questions_results'
+            ]
+            for key in keys_to_clear:
+                if key in st.session_state:
+                    del st.session_state[key]
             st.rerun()
         
+        st.markdown("---")
+        
+        # Document viewer button (only show when a document is selected)
         from utils.session_state import has_selected_document
         if has_selected_document():
-            if st.button("📄 Document", use_container_width=True, type="primary" if st.session_state.current_page == "document_viewer" else "secondary"):
+            if st.button("📄 View document", use_container_width=True, type="primary" if st.session_state.current_page == "document_viewer" else "secondary"):
                 # Log navigation
                 try:
                     from utils.usage_logger import log_navigation
@@ -39,17 +135,16 @@ def show_sidebar():
                     pass
                 st.session_state.current_page = "document_viewer"
                 st.rerun()
-        
-        st.markdown("---")
+            st.markdown("---")
         
         # Quick stats
         backend = st.session_state.backend
         clients = backend.get_clients()
         queries = backend.get_predefined_queries()
         
-        st.markdown("**Dataset info**")
-        st.metric("Clients", len(clients) - 1)  # -1 for "All"
-        st.metric("Predefined queries", len(queries))
+        # App info popover (replaces dataset info)
+        from utils.app_info import show_app_info_popover
+        show_app_info_popover()
         
         if 'search_results' in st.session_state and st.session_state.search_results:
             st.markdown("**Last search**")
@@ -85,14 +180,16 @@ def show_sidebar():
 
 def show_top_nav():
     """Display top navigation bar"""
-    col1, col2, col3 = st.columns([2, 1, 1])
+    col1, col2, col3 = st.columns([1, 2, 1])
     
-    with col1:
+    with col2:
         if st.session_state.current_page == "search":
-            # st.markdown("# 🔍")
-            st.image("assets/logo.png")
+            # Center the logo using columns
+            left, col_center, right = st.columns([20, 1, 1])
+            with left:
+                st.image("assets/logo.png")
         else:
-            st.markdown("# 📄")
+            st.image("assets/file.png")
     
     with col2:
         if st.session_state.current_page == "document_viewer":
@@ -107,17 +204,29 @@ def show_top_nav():
     st.markdown("---")
 
 def main():
+    # Initialize session state
     if 'current_page' not in st.session_state:
-        st.session_state.current_page = "search"
+        st.session_state.current_page = "server_status"
+    if 'server_ready' not in st.session_state:
+        st.session_state.server_ready = False
     
-    show_sidebar()
-    show_top_nav()
+    # Show server status page first if server is not ready
+    if not st.session_state.server_ready and st.session_state.current_page != "server_status":
+        st.session_state.current_page = "server_status"
     
-    if st.session_state.current_page == "search":
-        from pages.legal_search import show_legal_search_page
+    # Only show sidebar and nav for main app pages
+    if st.session_state.current_page != "server_status":
+        show_sidebar()
+        show_top_nav()
+    
+    if st.session_state.current_page == "server_status":
+        from views.server_status import show_server_status_page
+        show_server_status_page()
+    elif st.session_state.current_page == "search":
+        from views.legal_search import show_legal_search_page
         show_legal_search_page()
     elif st.session_state.current_page == "document_viewer":
-        from pages.document_viewer import show_document_viewer_page
+        from views.document_viewer import show_document_viewer_page
         show_document_viewer_page()
 
 if __name__ == "__main__":
