@@ -266,23 +266,41 @@ def show_legal_search_page():
                 try:
                     from utils.usage_logger import log_search, log_predefined_query_usage
                     if run_all_questions:
-                        # Skip logging for all questions mode
-                        pass
+                        # Log all questions search
+                        log_search(
+                            query="[ALL QUESTIONS]",
+                            client_filter=", ".join(selected_clients),
+                            doc_type_filter=selected_doc_type if selected_doc_type != "All" else None,
+                            account_type_filter=selected_account_type if selected_account_type != "All" else None,
+                            solution_line_filter=selected_solution_line if selected_solution_line != "All" else None,
+                            related_product_filter=selected_related_product if selected_related_product != "All" else None,
+                            result_count=len(all_results),
+                            processing_time=total_time,
+                            search_type="all_questions"
+                        )
                     elif len(selected_clients) > 1:
                         log_search(
                             query=final_query,
                             client_filter=", ".join(selected_clients),
                             doc_type_filter=selected_doc_type if selected_doc_type != "All" else None,
+                            account_type_filter=selected_account_type if selected_account_type != "All" else None,
+                            solution_line_filter=selected_solution_line if selected_solution_line != "All" else None,
+                            related_product_filter=selected_related_product if selected_related_product != "All" else None,
                             result_count=len(selected_clients),
-                            processing_time=multi_results.total_processing_time
+                            processing_time=multi_results.total_processing_time,
+                            search_type="multi"
                         )
                     else:
                         log_search(
                             query=final_query,
                             client_filter=selected_clients[0] if selected_clients else None,
                             doc_type_filter=selected_doc_type if selected_doc_type != "All" else None,
+                            account_type_filter=selected_account_type if selected_account_type != "All" else None,
+                            solution_line_filter=selected_solution_line if selected_solution_line != "All" else None,
+                            related_product_filter=selected_related_product if selected_related_product != "All" else None,
                             result_count=search_results.total_documents,
-                            processing_time=search_results.processing_time
+                            processing_time=search_results.processing_time,
+                            search_type="single"
                         )
                     
                     if selected_query:

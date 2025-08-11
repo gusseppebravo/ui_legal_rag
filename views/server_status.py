@@ -27,13 +27,25 @@ def check_server_health() -> Dict[str, Any]:
         else:
             return {
                 "status": "unhealthy",
-                "error": f"HTTP {response.status_code}",
+                "error": f"HTTP {response.status_code}: {response.text}",
                 "status_code": response.status_code
             }
+    except requests.exceptions.Timeout:
+        return {
+            "status": "error",
+            "error": "Request timeout (10 seconds)",
+            "status_code": None
+        }
+    except requests.exceptions.ConnectionError:
+        return {
+            "status": "error", 
+            "error": "Connection error - server may be down",
+            "status_code": None
+        }
     except requests.exceptions.RequestException as e:
         return {
             "status": "error",
-            "error": str(e),
+            "error": f"Request failed: {str(e)}",
             "status_code": None
         }
 
@@ -53,15 +65,35 @@ def cold_start_server() -> Dict[str, Any]:
             timeout=30
         )
         
+        if response.status_code == 200:
+            return {
+                "status": "success",
+                "status_code": response.status_code,
+                "response": response.json()
+            }
+        else:
+            return {
+                "status": "failed",
+                "status_code": response.status_code,
+                "response": response.text,
+                "error": f"HTTP {response.status_code}"
+            }
+    except requests.exceptions.Timeout:
         return {
-            "status": "success" if response.status_code == 200 else "failed",
-            "status_code": response.status_code,
-            "response": response.json() if response.status_code == 200 else response.text
+            "status": "error",
+            "error": "Request timeout (30 seconds) - server may be cold starting",
+            "status_code": None
+        }
+    except requests.exceptions.ConnectionError:
+        return {
+            "status": "error",
+            "error": "Connection error - check network connectivity or API endpoint",
+            "status_code": None
         }
     except requests.exceptions.RequestException as e:
         return {
             "status": "error",
-            "error": str(e),
+            "error": f"Request failed: {str(e)}",
             "status_code": None
         }
 
@@ -103,6 +135,14 @@ def show_server_status_page():
                 if health_result["status"] == "healthy":
                     st.success("✅ Embedding server is ready!")
                     
+                    # Log successful server connection
+                    try:
+                        from utils.usage_logger import log_server_status
+                        log_server_status("healthy", "health_check", 
+                                         {"status_code": health_result["status_code"]})
+                    except Exception:
+                        pass
+                    
                     # Display server info
                     if "data" in health_result:
                         data = health_result["data"]
@@ -125,6 +165,15 @@ def show_server_status_page():
                 else:
                     st.error(f"❌ Server not ready: {health_result.get('error', 'Unknown error')}")
                     
+                    # Log server connection issues
+                    try:
+                        from utils.usage_logger import log_server_status
+                        log_server_status("unhealthy", "health_check", 
+                                         {"error": health_result.get('error'), 
+                                          "status_code": health_result.get("status_code")})
+                    except Exception:
+                        pass
+                    
                     # Try cold start if not attempted yet
                     if not st.session_state.cold_start_attempted:
                         st.session_state.cold_start_attempted = True
@@ -135,11 +184,25 @@ def show_server_status_page():
                             with st.spinner("Sending cold start request..."):
                                 cold_start_result = cold_start_server()
                                 
+                                # Log cold start attempt
+                                try:
+                                    from utils.usage_logger import log_server_status
+                                    log_server_status(cold_start_result["status"], "cold_start", 
+                                                     {"error": cold_start_result.get('error'), 
+                                                      "status_code": cold_start_result.get("status_code")})
+                                except Exception:
+                                    pass
+                                
                                 if cold_start_result["status"] == "success":
                                     st.info("Cold start request sent. Server is warming up...")
                                     st.info("⏱️ This may take 5-10 minutes. Auto-checking every minute...")
-                                else:
+                                elif cold_start_result["status"] == "failed":
+                                    st.error(f"Failed to send cold start request: HTTP {cold_start_result['status_code']}")
+                                    if 'response' in cold_start_result:
+                                        st.error(f"Response: {cold_start_result['response']}")
+                                else:  # status == "error"
                                     st.error(f"Failed to send cold start request: {cold_start_result.get('error', 'Unknown error')}")
+                                    st.error("This is usually a network connectivity issue or the API endpoint is down.")
                     
                     else:
                         # Show waiting message

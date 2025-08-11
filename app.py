@@ -13,9 +13,35 @@ if 'backend' not in st.session_state:
 def show_sidebar():
     """Display sidebar with navigation and quick stats"""
     with st.sidebar:
-        st.logo("assets/contract.png", size='large')
-        # st.markdown("### Contract intelligence")
+        # st.logo("assets/contract.png", size='large')
+        st.markdown("# :material/contract: CONTRACT INTELLIGENCE")
         st.markdown("---")
+        
+        # User info and logout button
+        if st.session_state.get('authenticated', False):
+            user_type = "Admin" if st.session_state.get('is_admin', False) else "User"
+            st.markdown(f"**👤 Welcome, {st.session_state.get('username', 'User')} ({user_type})**")
+            
+            # Admin navigation
+            if st.session_state.get('is_admin', False):
+                if st.button("📊 Analytics", use_container_width=True, 
+                           type="primary" if st.session_state.current_page == "analytics" else "secondary"):
+                    st.session_state.current_page = "analytics"
+                    st.rerun()
+                
+                if st.button("🔍 Search App", use_container_width=True,
+                           type="primary" if st.session_state.current_page == "search" else "secondary"):
+                    # Check if server is ready for search
+                    if not st.session_state.get('server_ready', False):
+                        st.session_state.current_page = "server_status"
+                    else:
+                        st.session_state.current_page = "search"
+                    st.rerun()
+            
+            if st.button("🚪 Logout", use_container_width=True, type="secondary"):
+                from views.login import logout
+                logout()
+            st.markdown("---")
         
         # Filters first (moved from legal_search.py)
         st.markdown("### 🔧 Filters")
@@ -51,7 +77,7 @@ def show_sidebar():
             selected_clients = st.multiselect(
                 "Account(s):",
                 options=accounts,
-                default=[],
+                default=st.session_state.get('client_selector', []),
                 key="client_selector"
             )
             
@@ -76,7 +102,7 @@ def show_sidebar():
             selected_clients = st.multiselect(
                 "Account(s):",
                 options=accounts,
-                default=[],
+                default=st.session_state.get('client_selector', []),
                 key="client_selector"
             )
         else:
@@ -85,7 +111,7 @@ def show_sidebar():
             selected_clients = st.multiselect(
                 "Account(s):",
                 options=accounts,
-                default=[],
+                default=st.session_state.get('client_selector', []),
                 key="client_selector"
             )
         
@@ -107,6 +133,20 @@ def show_sidebar():
         
         # Clear filters button
         if st.button("🔄 Clear", use_container_width=True, type="secondary"):
+            # Log filter clear action
+            try:
+                from utils.usage_logger import log_filter_usage
+                log_filter_usage({
+                    "action": "clear_all",
+                    "account_type": st.session_state.get('account_type_selector'),
+                    "doc_type": st.session_state.get('doc_type_selector'),
+                    "clients": st.session_state.get('client_selector'),
+                    "solution_line": st.session_state.get('solution_line_selector'),
+                    "related_product": st.session_state.get('related_product_selector')
+                })
+            except Exception:
+                pass
+            
             # Clear all filter-related session state
             keys_to_clear = [
                 'account_type_selector', 'doc_type_selector', 'client_selector',
@@ -164,6 +204,13 @@ def show_sidebar():
                     key=f"history_{i}",
                     help=f"Client: {item['client_filter']}{doc_type_info} | Results: {item['results_count']} | {item['timestamp']}"
                 ):
+                    # Log search history replay
+                    try:
+                        from utils.usage_logger import log_navigation
+                        log_navigation("search_history", "search")
+                    except Exception:
+                        pass
+                    
                     # Replay the search
                     st.session_state.custom_query_input = item['query']
                     # Handle both single and multi-client filters
@@ -188,6 +235,8 @@ def show_top_nav():
             left, col_center, right = st.columns([20, 1, 1])
             with left:
                 st.image("assets/logo.png")
+        elif st.session_state.current_page == "analytics":
+            st.image("assets/logo.png")
         else:
             st.image("assets/file.png")
     
@@ -206,18 +255,53 @@ def show_top_nav():
 def main():
     # Initialize session state
     if 'current_page' not in st.session_state:
-        st.session_state.current_page = "server_status"
+        st.session_state.current_page = "login"
     if 'server_ready' not in st.session_state:
         st.session_state.server_ready = False
+    if 'authenticated' not in st.session_state:
+        st.session_state.authenticated = False
+    if 'is_admin' not in st.session_state:
+        st.session_state.is_admin = False
     
-    # Show server status page first if server is not ready
-    if not st.session_state.server_ready and st.session_state.current_page != "server_status":
+    # Log session start if this is a new session
+    if 'session_logged' not in st.session_state:
+        try:
+            from utils.usage_logger import log_session_start
+            log_session_start()
+            st.session_state.session_logged = True
+        except Exception:
+            pass
+    
+    # Check authentication first
+    from views.login import check_authentication
+    
+    if not check_authentication():
+        # If not authenticated, show login page
+        st.session_state.current_page = "login"
+        from views.login import show_login_page
+        show_login_page()
+        return
+    
+    # Show server status page first if server is not ready (but not for analytics page)
+    if (not st.session_state.server_ready and 
+        st.session_state.current_page not in ["login", "server_status", "analytics"]):
         st.session_state.current_page = "server_status"
     
     # Only show sidebar and nav for main app pages
-    if st.session_state.current_page != "server_status":
+    if st.session_state.current_page not in ["login", "server_status"]:
         show_sidebar()
         show_top_nav()
+    elif st.session_state.current_page == "server_status":
+        # Show minimal sidebar with just user info and logout
+        with st.sidebar:
+            st.markdown("# :material/contract: CONTRACT INTELLIGENCE")
+            st.markdown("---")
+            if st.session_state.get('authenticated', False):
+                user_type = "Admin" if st.session_state.get('is_admin', False) else "User"
+                st.markdown(f"**👤 Welcome, {st.session_state.get('username', 'User')} ({user_type})**")
+                if st.button("🚪 Logout", use_container_width=True, type="secondary"):
+                    from views.login import logout
+                    logout()
     
     if st.session_state.current_page == "server_status":
         from views.server_status import show_server_status_page
@@ -228,6 +312,15 @@ def main():
     elif st.session_state.current_page == "document_viewer":
         from views.document_viewer import show_document_viewer_page
         show_document_viewer_page()
+    elif st.session_state.current_page == "analytics":
+        # Only allow analytics for admin users
+        if st.session_state.get('is_admin', False):
+            from views.analytics import show_analytics_page
+            show_analytics_page()
+        else:
+            st.error("Access denied. Admin privileges required.")
+            st.session_state.current_page = "search"
+            st.rerun()
 
 if __name__ == "__main__":
     main()

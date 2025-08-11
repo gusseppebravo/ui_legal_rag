@@ -15,15 +15,15 @@ def setup_page_config():
     .stAppDeployButton { display: none; }
     .stApp > header { display: none; }
     
-    /* Hide development/debug elements but preserve sidebar controls */
-    .css-1544g2n { display: none; }
-    .css-1d391kg .css-1544g2n { display: none; }
-    .stSidebar .css-1544g2n { display: none; }
-    .css-1dp5vir { display: none; }
+    /* Hide sidebar collapse/expand functionality completely */
+    [data-testid="collapsedControl"] { display: none !important; }
+    [data-testid="stSidebarCollapseButton"] { display: none !important; }
+    button[data-testid="baseButton-headerNoPadding"] { display: none !important; }
+    .css-1cypcdb { display: none !important; }
     
-    /* Ensure sidebar toggle button is visible */
-    [data-testid="collapsedControl"] { display: block !important; }
-    .css-1cypcdb { display: block !important; }
+    /* Hide other development elements */
+    .stDeployButton { display: none; }
+    .stDecoration { display: none; }
     
     /* Compact sidebar */
     .css-1d391kg { padding-top: 1rem; }

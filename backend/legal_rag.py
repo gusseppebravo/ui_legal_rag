@@ -110,7 +110,15 @@ class LegalRAGBackend:
                                document_type_filter: Optional[str] = None, account_type_filter: Optional[str] = None,
                                solution_line_filter: Optional[str] = None, related_product_filter: Optional[str] = None,
                                top_k: int = 5):
-        query_embedding = self.get_text_embedding(query_text)
+        query_embedding = self.get_text_embedding(query_text) # this returns a single embedding for the query text
+        return self.query_s3_vector_store_with_embedding(query_embedding, client_account_filter, 
+                                                        document_type_filter, account_type_filter,
+                                                        solution_line_filter, related_product_filter, top_k)
+
+    def query_s3_vector_store_with_embedding(self, query_embedding: List[float], client_account_filter: Optional[str] = None, 
+                                           document_type_filter: Optional[str] = None, account_type_filter: Optional[str] = None,
+                                           solution_line_filter: Optional[str] = None, related_product_filter: Optional[str] = None,
+                                           top_k: int = 5):
         filter_expression = {}
         
         # Build filter expression with multiple conditions
@@ -199,6 +207,52 @@ Answer:"""
 
         chunks = self.query_s3_vector_store(query, client_filter, document_type_filter, 
                                            account_type_filter, solution_line_filter, related_product_filter, top_k=top_k)
+
+        if not chunks:
+            print("❗ No chunks returned from vector store.")
+            return None, {}, 0, []
+
+        print(f"✅ Chunks response received: {type(chunks)}")
+        print(f"Chunks keys: {list(chunks.keys()) if chunks else 'None'}")
+        
+        vectors = chunks.get('vectors', [])
+        print(f"Number of vectors in chunks: {len(vectors)}")
+        
+        if not vectors:
+            print("❌ No vectors in chunks response!")
+            return None, {}, 0, []
+
+        prompt, refs = self.build_prompt(query, chunks)
+        print(f"Context length: {len(prompt)}")
+
+        response = self.azure_client.chat.completions.create(
+            model=AZURE_DEPLOYMENT_NAME,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a legal document analyst. Provide comprehensive, actionable answers based on the context provided. "
+                               "Focus on what documents DO say rather than what they don't mention. "
+                               "Cite sources using [1], [2], etc. based on the exact chunks provided. "
+                               "When information is incomplete, explain what specific details are missing."
+                },
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        answer = response.choices[0].message.content.strip()
+        latency = round((time.time() - start) * 1000, 2)
+
+        return answer, refs, latency, chunks.get('vectors', [])
+
+    def run_query_pipeline_with_embedding(self, query: str, query_embedding: List[float], client_filter: Optional[str] = None, 
+                                        document_type_filter: Optional[str] = None, account_type_filter: Optional[str] = None,
+                                        solution_line_filter: Optional[str] = None, related_product_filter: Optional[str] = None,
+                                        top_k: int = 5):
+        print(f"\n🔍 Running RAG query with pre-computed embedding for: {query}\n")
+        start = time.time()
+
+        chunks = self.query_s3_vector_store_with_embedding(query_embedding, client_filter, document_type_filter, 
+                                                          account_type_filter, solution_line_filter, related_product_filter, top_k=top_k)
 
         if not chunks:
             print("❗ No chunks returned from vector store.")

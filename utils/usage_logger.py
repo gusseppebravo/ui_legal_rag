@@ -72,17 +72,22 @@ class UsageLogger:
             print(f"Logging error: {e}")
     
     def log_search(self, query: str, client_filter: Optional[str] = None, 
-                   doc_type_filter: Optional[str] = None, result_count: int = 0, 
-                   processing_time: float = 0.0):
-        """Log a search operation"""
+                   doc_type_filter: Optional[str] = None, account_type_filter: Optional[str] = None,
+                   solution_line_filter: Optional[str] = None, related_product_filter: Optional[str] = None,
+                   result_count: int = 0, processing_time: float = 0.0, search_type: str = 'single'):
+        """Log a search operation with enhanced filter tracking"""
         self.log_event('search', {
             'query': query[:200],  # Truncate long queries
             'query_length': len(query),
             'client_filter': client_filter,
             'doc_type_filter': doc_type_filter,
+            'account_type_filter': account_type_filter,
+            'solution_line_filter': solution_line_filter,
+            'related_product_filter': related_product_filter,
             'result_count': result_count,
             'processing_time': processing_time,
-            'has_results': result_count > 0
+            'has_results': result_count > 0,
+            'search_type': search_type  # 'single', 'multi', 'all_questions'
         })
     
     def log_document_view(self, document_id: str, source: str = 'search_results'):
@@ -121,6 +126,38 @@ class UsageLogger:
             'query_title': query_title
         })
     
+    def log_authentication(self, event_type: str, username: str, is_admin: bool = False, success: bool = True):
+        """Log authentication events (login, logout)"""
+        self.log_event('authentication', {
+            'auth_event': event_type,  # 'login', 'logout'
+            'username': username,
+            'is_admin': is_admin,
+            'success': success
+        })
+    
+    def log_analytics_access(self, action: str, time_filter: Optional[str] = None, 
+                           export_type: Optional[str] = None):
+        """Log analytics dashboard access and usage"""
+        self.log_event('analytics', {
+            'action': action,  # 'access', 'export', 'filter_change'
+            'time_filter': time_filter,
+            'export_type': export_type
+        })
+    
+    def log_server_status(self, status: str, attempt_type: str, details: Dict[str, Any] = None):
+        """Log server status checking and cold start attempts"""
+        self.log_event('server_status', {
+            'status': status,  # 'healthy', 'unhealthy', 'error'
+            'attempt_type': attempt_type,  # 'health_check', 'cold_start'
+            'details': details or {}
+        })
+    
+    def log_filter_usage(self, filters_applied: Dict[str, Any]):
+        """Log which filters are being used"""
+        self.log_event('filter_usage', {
+            'filters': filters_applied
+        })
+    
     def get_user_agent(self) -> str:
         """Get user agent if available"""
         try:
@@ -141,9 +178,12 @@ def get_usage_logger() -> UsageLogger:
 
 # Convenience functions for easy import
 def log_search(query: str, client_filter: Optional[str] = None, 
-               doc_type_filter: Optional[str] = None, result_count: int = 0, 
-               processing_time: float = 0.0):
-    get_usage_logger().log_search(query, client_filter, doc_type_filter, result_count, processing_time)
+               doc_type_filter: Optional[str] = None, account_type_filter: Optional[str] = None,
+               solution_line_filter: Optional[str] = None, related_product_filter: Optional[str] = None,
+               result_count: int = 0, processing_time: float = 0.0, search_type: str = 'single'):
+    get_usage_logger().log_search(query, client_filter, doc_type_filter, account_type_filter,
+                                 solution_line_filter, related_product_filter, result_count, 
+                                 processing_time, search_type)
 
 def log_document_view(document_id: str, source: str = 'search_results'):
     get_usage_logger().log_document_view(document_id, source)
@@ -159,3 +199,15 @@ def log_error(error_type: str, error_message: str, context: Dict[str, Any] = Non
 
 def log_predefined_query_usage(query_id: str, query_title: str):
     get_usage_logger().log_predefined_query_usage(query_id, query_title)
+
+def log_authentication(event_type: str, username: str, is_admin: bool = False, success: bool = True):
+    get_usage_logger().log_authentication(event_type, username, is_admin, success)
+
+def log_analytics_access(action: str, time_filter: Optional[str] = None, export_type: Optional[str] = None):
+    get_usage_logger().log_analytics_access(action, time_filter, export_type)
+
+def log_server_status(status: str, attempt_type: str, details: Dict[str, Any] = None):
+    get_usage_logger().log_server_status(status, attempt_type, details)
+
+def log_filter_usage(filters_applied: Dict[str, Any]):
+    get_usage_logger().log_filter_usage(filters_applied)
