@@ -95,85 +95,13 @@ def show_document_viewer_page():
     st.markdown("---")
     
     # Comprehensive metadata table
-    st.markdown("### 📋 Document Details")
+    st.markdown("### 📋 Document details")
     
-    # Extract contract number from s3_path
-    contract_number = "N/A"
-    if selected_snippet.metadata and 's3_path' in selected_snippet.metadata:
-        s3_path = selected_snippet.metadata['s3_path']
-        if '/contract-docs/' in s3_path:
-            # Extract number after /contract-docs/
-            path_parts = s3_path.split('/contract-docs/')
-            if len(path_parts) > 1:
-                remaining_path = path_parts[1]
-                # Get the first directory after contract-docs/
-                contract_parts = remaining_path.split('/')
-                if contract_parts:
-                    contract_number = contract_parts[0]
+    # Use shared utility for metadata table
+    from utils.document_metadata import build_metadata_table, format_metadata_table
     
-    # Extract client name
-    client_name = "N/A"
-    if selected_snippet.metadata:
-        account_details = selected_snippet.metadata.get("account_details", [])
-        if isinstance(account_details, list) and len(account_details) > 0:
-            client_name = account_details[0] if account_details[0] else "N/A"
-        else:
-            # Fallback to old structure if needed
-            client_account = selected_snippet.metadata.get("client_account", "N/A")
-            if isinstance(client_account, list):
-                client_name = client_account[0] if client_account else "N/A"
-            else:
-                client_name = client_account if client_account != "N/A" else "N/A"
-    
-    # Helper function to format values
-    def format_value(value):
-        if isinstance(value, list):
-            return ", ".join(str(v) for v in value if v) if value else "N/A"
-        return str(value) if value else "N/A"
-    
-    # Create comprehensive metadata table
-    metadata_rows = []
-    
-    # Basic document information
-    metadata_rows.append(f"| **Client** | {client_name} |")
-    metadata_rows.append(f"| **Contract** | {contract_number} |")
-    metadata_rows.append(f"| **Source** | {selected_snippet.source} |")
-    metadata_rows.append(f"| **Document Type** | {selected_snippet.section or 'N/A'} |")
-    metadata_rows.append(f"| **Relevance** | {selected_snippet.relevance_score:.3f} |")
-    metadata_rows.append(f"| **Distance** | {selected_snippet.distance:.3f} |")
-    
-    # Additional metadata fields if available
-    if selected_snippet.metadata:
-        key_fields = {
-            'contract_title': 'Contract Title',
-            'solution_line': 'Solution Line', 
-            'status_reason': 'Status',
-            'contract_requester': 'Requester',
-            'reviewing_attorney': 'Reviewing Attorney',
-            'created_on': 'Created Date',
-            'document_effective_date': 'Effective Date',
-            'parent_contract': 'Parent Contract'
-        }
-        
-        # Add key fields if they exist
-        for field, display_name in key_fields.items():
-            if field in selected_snippet.metadata and selected_snippet.metadata[field]:
-                value = format_value(selected_snippet.metadata[field])
-                metadata_rows.append(f"| **{display_name}** | {value} |")
-        
-        # Add aggregated fields
-        if 'dates' in selected_snippet.metadata and selected_snippet.metadata['dates']:
-            dates = selected_snippet.metadata['dates']
-            formatted_dates = format_value(dates)
-            metadata_rows.append(f"| **Key Dates** | {formatted_dates} |")
-        
-        if 'attorneys' in selected_snippet.metadata and selected_snippet.metadata['attorneys']:
-            attorneys = selected_snippet.metadata['attorneys']
-            formatted_attorneys = format_value(attorneys)
-            metadata_rows.append(f"| **Legal Team** | {formatted_attorneys} |")
-    
-    # Display the comprehensive table
-    table_content = "| Field | Value |\n|-------|-------|\n" + "\n".join(metadata_rows)
+    metadata_rows = build_metadata_table(selected_snippet, include_basic_fields=True)
+    table_content = format_metadata_table(metadata_rows)
     st.markdown(table_content)
     
     # Download file section

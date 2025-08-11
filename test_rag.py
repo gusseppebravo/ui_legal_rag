@@ -128,7 +128,7 @@ def test_rag():
 
 if __name__ == "__main__":
     # Test the embedding API first
-    test_embedding_api()
-    print("\n" + "="*50 + "\n")
+    # test_embedding_api()
+    # print("\n" + "="*50 + "\n")
     # Then test the full RAG pipeline
     test_rag()

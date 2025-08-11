@@ -15,7 +15,8 @@ VECTOR_BUCKET_NAME = "legal-docs-vector-store"
 EMBEDDINGS_URL = "https://zgggzg2iqg.execute-api.us-east-1.amazonaws.com/dev/get_embeddings"
 # INDEX_NAME = 'token-chunking-poc'
 # INDEX_NAME = 'token-chunking-metadata-enriched'
-INDEX_NAME = 'token-chunking-valid'
+# INDEX_NAME = 'token-chunking-valid'
+INDEX_NAME = 'token-chunking-vectors-poc'
 
 AZURE_OPENAI_ENDPOINT = "https://ironclad-openai-001.openai.azure.com/"
 AZURE_OPENAI_API_KEY = "936856630b764210913d9a8fd6c8212b"

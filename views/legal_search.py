@@ -5,6 +5,19 @@ from backend.models import SearchResult
 from utils.ui_components import display_document_snippet, display_search_summary, create_info_box, display_search_debug_info
 from utils.session_state import clear_search_results
 
+def _create_single_client_dataframe(search_result: SearchResult) -> pd.DataFrame:
+    """Create a simple dataframe for single client search results"""
+    # Extract simple answer from the AI response
+    simple_answer = _extract_simple_answer(search_result.summary)
+    
+    # Create a simple table with Question and Answer
+    data = [{
+        'Question': search_result.query,
+        'Answer': simple_answer
+    }]
+    
+    return pd.DataFrame(data)
+
 def _markdown_table_to_dataframe(markdown_table: str) -> pd.DataFrame:
     """Convert markdown table to pandas dataframe"""
     try:
@@ -195,17 +208,21 @@ def show_legal_search_page():
             icon=":material/search:"
         )
 
-    # Handle query selection logic - both can coexist, but predefined takes priority when searching
+    # Handle query selection logic - custom query takes priority when both are provided
     final_query = None
     
-    # Predefined query takes priority if selected
-    if selected_query and selected_query_text != "Select predefined query...":
-        final_query = selected_query.query_text
-        # Show a note if both are filled
-        if custom_query.strip():
-            st.info("📝 Using predefined query. Custom query will be ignored.")
-    elif custom_query.strip():
+    # Custom query takes priority if provided
+    if custom_query.strip():
         final_query = custom_query.strip()
+        run_all_questions = False  # Override "All questions" if custom query is provided
+        # Show a note if "All questions" was selected
+        if selected_query_text == "All questions":
+            st.info("📝 Using custom query. 'All questions' selection will be ignored.")
+        # Show a note if both custom and predefined query are filled
+        elif selected_query and selected_query_text != "Select predefined query...":
+            st.info("📝 Using custom query. Predefined query will be ignored.")
+    elif selected_query and selected_query_text != "Select predefined query...":
+        final_query = selected_query.query_text
     
     if search_button:
         if (run_all_questions or final_query) and selected_clients:
@@ -389,8 +406,19 @@ def show_legal_search_page():
         
         st.markdown("---")
         
-        # Highlight the final query that was used
-        st.markdown("### 🔍 Query used")
+        # Display tabular summary as the main answer (standardized format)
+        st.markdown("### Answer")
+        df = _create_single_client_dataframe(results)
+        styled_df = _style_dataframe(df)
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        
+        # Query used and search results section
+        st.markdown("### Query used and search results")
+        
+        # Show the query used
+        st.markdown("**Query:**")
         st.markdown(f"""
         <div style="
             background-color: #f0f9ff;
@@ -405,39 +433,51 @@ def show_legal_search_page():
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("### Search results")
+        st.markdown("**Search results:**")
         
-        display_search_summary(
-            results.summary,
-            results.total_documents,
-            results.processing_time
-        )
+        # Display processing time metrics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Documents found", results.total_documents)
+        with col2:
+            st.metric("Processing time", f"{results.processing_time:.2f}s")
+        with col3:
+            st.metric("Search status", "✅ Complete")
         
-        # Add search debug information
-        display_search_debug_info(
-            results.query,
-            results.client_filter or "Selected client",
-            st.session_state.get('selected_doc_type', 'All'),
-            st.session_state.get('selected_account_type', 'All'),
-            st.session_state.get('selected_solution_line', 'All'),
-            st.session_state.get('selected_related_product', 'All'),
-            len(results.snippets)
-        )
-        
-        st.markdown("---")
-        
-        if results.snippets:
-            st.markdown("### Document snippets")
-            st.markdown("*Click on any snippet to view the full document*")
-            
-            for idx, snippet in enumerate(results.snippets):
-                display_document_snippet(snippet, idx)
-        else:
-            create_info_box(
-                "No results found",
-                "No document snippets were found for your query. Try adjusting your search terms or client filter.",
-                "warning"
+        # Add search debug information in expandable section
+        with st.expander("🔍 Search details", expanded=False):
+            display_search_debug_info(
+                results.query,
+                results.client_filter or "Selected client",
+                st.session_state.get('selected_doc_type', 'All'),
+                st.session_state.get('selected_account_type', 'All'),
+                st.session_state.get('selected_solution_line', 'All'),
+                st.session_state.get('selected_related_product', 'All'),
+                len(results.snippets)
             )
+        
+        # Display document snippets in expandable section
+        if results.snippets:
+            with st.expander(f"📄 Detailed results with document chunks ({len(results.snippets)} documents)", expanded=False):
+                st.markdown("**AI Answer:**")
+                st.markdown(f"""
+                <div style="
+                    background-color: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    border-radius: 0.4rem;
+                    padding: 0.8rem;
+                    margin-bottom: 1rem;
+                    font-size: 0.95rem;
+                ">
+                    {results.summary}
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown("**Document snippets:**")
+                for idx, snippet in enumerate(results.snippets):
+                    display_document_snippet(snippet, idx)
+        else:
+            st.warning("No document snippets found for this query.")
     
     elif 'multi_search_results' in st.session_state and st.session_state.multi_search_results:
         # Multi-client results

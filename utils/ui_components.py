@@ -140,74 +140,12 @@ def _display_document_details(snippet: DocumentSnippet):
     
     st.markdown("---")
     
-    # Extract metadata
-    contract_number = "N/A"
-    if snippet.metadata and 's3_path' in snippet.metadata:
-        s3_path = snippet.metadata['s3_path']
-        if '/contract-docs/' in s3_path:
-            path_parts = s3_path.split('/contract-docs/')
-            if len(path_parts) > 1:
-                remaining_path = path_parts[1]
-                contract_parts = remaining_path.split('/')
-                if contract_parts:
-                    contract_number = contract_parts[0]
+    # Document details table using shared utility
+    from .document_metadata import build_metadata_table, format_metadata_table
     
-    client_name = "N/A"
-    if snippet.metadata:
-        account_details = snippet.metadata.get("account_details", [])
-        if isinstance(account_details, list) and len(account_details) > 0:
-            client_name = account_details[0] if account_details[0] else "N/A"
-        else:
-            client_account = snippet.metadata.get("client_account", "N/A")
-            if isinstance(client_account, list):
-                client_name = client_account[0] if client_account else "N/A"
-            else:
-                client_name = client_account if client_account != "N/A" else "N/A"
-    
-    def format_value(value):
-        if isinstance(value, list):
-            return ", ".join(str(v) for v in value if v) if value else "N/A"
-        return str(value) if value else "N/A"
-    
-    # Document details table
     st.markdown("**Document details**")
-    
-    metadata_rows = []
-    metadata_rows.append(f"| **Client** | {client_name} |")
-    metadata_rows.append(f"| **Contract** | {contract_number} |")
-    metadata_rows.append(f"| **Source** | {snippet.source} |")
-    metadata_rows.append(f"| **Document type** | {snippet.section or 'N/A'} |")
-    metadata_rows.append(f"| **Relevance** | {snippet.relevance_score:.3f} |")
-    metadata_rows.append(f"| **Distance** | {snippet.distance:.3f} |")
-    
-    if snippet.metadata:
-        key_fields = {
-            'contract_title': 'Contract title',
-            'solution_line': 'Solution line', 
-            'status_reason': 'Status',
-            'contract_requester': 'Requester',
-            'reviewing_attorney': 'Reviewing attorney',
-            'created_on': 'Created date',
-            'document_effective_date': 'Effective date',
-            'parent_contract': 'Parent contract'
-        }
-        
-        for field, display_name in key_fields.items():
-            if field in snippet.metadata and snippet.metadata[field]:
-                value = format_value(snippet.metadata[field])
-                metadata_rows.append(f"| **{display_name}** | {value} |")
-        
-        if 'dates' in snippet.metadata and snippet.metadata['dates']:
-            dates = snippet.metadata['dates']
-            formatted_dates = format_value(dates)
-            metadata_rows.append(f"| **Key dates** | {formatted_dates} |")
-        
-        if 'attorneys' in snippet.metadata and snippet.metadata['attorneys']:
-            attorneys = snippet.metadata['attorneys']
-            formatted_attorneys = format_value(attorneys)
-            metadata_rows.append(f"| **Legal team** | {formatted_attorneys} |")
-    
-    table_content = "| Field | Value |\n|-------|-------|\n" + "\n".join(metadata_rows)
+    metadata_rows = build_metadata_table(snippet, include_basic_fields=True)
+    table_content = format_metadata_table(metadata_rows)
     st.markdown(table_content)
     
     # Download link if available

@@ -29,6 +29,11 @@ def show_sidebar():
                     st.session_state.current_page = "analytics"
                     st.rerun()
                 
+                if st.button("🗄️ Cache management", use_container_width=True,
+                           type="primary" if st.session_state.current_page == "cache_management" else "secondary"):
+                    st.session_state.current_page = "cache_management"
+                    st.rerun()
+                
                 if st.button("🔍 Search App", use_container_width=True,
                            type="primary" if st.session_state.current_page == "search" else "secondary"):
                     # Check if server is ready for search
@@ -282,9 +287,9 @@ def main():
         show_login_page()
         return
     
-    # Show server status page first if server is not ready (but not for analytics page)
+    # Show server status page first if server is not ready (but not for analytics or cache management)
     if (not st.session_state.server_ready and 
-        st.session_state.current_page not in ["login", "server_status", "analytics"]):
+        st.session_state.current_page not in ["login", "server_status", "analytics", "cache_management"]):
         st.session_state.current_page = "server_status"
     
     # Only show sidebar and nav for main app pages
@@ -317,6 +322,15 @@ def main():
         if st.session_state.get('is_admin', False):
             from views.analytics import show_analytics_page
             show_analytics_page()
+        else:
+            st.error("Access denied. Admin privileges required.")
+            st.session_state.current_page = "search"
+            st.rerun()
+    elif st.session_state.current_page == "cache_management":
+        # Only allow cache management for admin users
+        if st.session_state.get('is_admin', False):
+            from views.cache_management import show_cache_management_page
+            show_cache_management_page()
         else:
             st.error("Access denied. Admin privileges required.")
             st.session_state.current_page = "search"
