@@ -90,9 +90,17 @@ class LegalRAGBackend:
                 response = requests.post(EMBEDDINGS_URL, json=payload, headers=headers)
                 response.raise_for_status()
 
-                raw_body = response.json().get('body')
-                parsed_body = json.loads(raw_body)
-                embedding = parsed_body.get('embeddings')
+                response_json = response.json()
+                
+                # Check if response has 'body' field (old format) or direct 'embeddings' (new format)
+                if 'body' in response_json:
+                    # Old format: body contains JSON string
+                    raw_body = response_json.get('body')
+                    parsed_body = json.loads(raw_body)
+                    embedding = parsed_body.get('embeddings')
+                else:
+                    # New format: embeddings directly in response
+                    embedding = response_json.get('embeddings')
                 
                 if not embedding or not isinstance(embedding, list) or len(embedding) != 1:
                     raise KeyError(f"No valid embedding found in response for text: '{text}'")

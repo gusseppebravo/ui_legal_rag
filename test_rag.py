@@ -2,9 +2,66 @@
 
 import sys
 import os
-
+import requests
+import json
 
 from backend.legal_rag import LegalRAGBackend
+
+def test_embedding_api():
+    """Test the embedding API directly to debug the response"""
+    print("=== TESTING EMBEDDING API DIRECTLY ===")
+    
+    API_KEY = "2jIpWCyNRg3Y8lkbmWG0tkyXwYlJn5QaZ1F3yKf7"
+    EMBEDDINGS_URL = "https://zgggzg2iqg.execute-api.us-east-1.amazonaws.com/dev/get_embeddings"
+    
+    payload = {
+        "model_name": "e5_mistral_embed_384",
+        "texts": ["Can we use client data to develop new services?"]
+    }
+    
+    headers = {
+        "x-api-key": API_KEY,
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        print(f"Making request to: {EMBEDDINGS_URL}")
+        print(f"Payload: {payload}")
+        
+        response = requests.post(EMBEDDINGS_URL, json=payload, headers=headers, timeout=30)
+        print(f"Response status: {response.status_code}")
+        print(f"Response headers: {dict(response.headers)}")
+        
+        if response.status_code == 200:
+            response_json = response.json()
+            print(f"Raw response keys: {list(response_json.keys())}")
+            print(f"Raw response: {response_json}")
+            
+            # Try parsing the body
+            if 'body' in response_json:
+                raw_body = response_json.get('body')
+                print(f"Raw body type: {type(raw_body)}")
+                print(f"Raw body: {raw_body}")
+                
+                if raw_body:
+                    try:
+                        parsed_body = json.loads(raw_body)
+                        print(f"Parsed body: {parsed_body}")
+                        print(f"Embeddings key exists: {'embeddings' in parsed_body}")
+                        if 'embeddings' in parsed_body:
+                            embeddings = parsed_body['embeddings']
+                            print(f"Embeddings type: {type(embeddings)}")
+                            print(f"Embeddings length: {len(embeddings) if embeddings else 'None'}")
+                    except json.JSONDecodeError as e:
+                        print(f"Failed to parse body as JSON: {e}")
+                else:
+                    print("Body is None or empty")
+        else:
+            print(f"Request failed with status {response.status_code}")
+            print(f"Response text: {response.text}")
+            
+    except Exception as e:
+        print(f"Exception during API call: {e}")
 
 def test_rag():
     backend = LegalRAGBackend()
@@ -70,4 +127,8 @@ def test_rag():
     print("✓ RAG backend test complete")
 
 if __name__ == "__main__":
+    # Test the embedding API first
+    test_embedding_api()
+    print("\n" + "="*50 + "\n")
+    # Then test the full RAG pipeline
     test_rag()
