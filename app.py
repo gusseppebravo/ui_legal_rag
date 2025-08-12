@@ -24,17 +24,17 @@ def show_sidebar():
             
             # Admin navigation
             if st.session_state.get('is_admin', False):
-                if st.button("📊 Analytics", use_container_width=True, 
+                if st.button("Analytics", use_container_width=True, 
                            type="primary" if st.session_state.current_page == "analytics" else "secondary"):
                     st.session_state.current_page = "analytics"
                     st.rerun()
                 
-                if st.button("🗄️ Cache management", use_container_width=True,
+                if st.button("Cache management", use_container_width=True,
                            type="primary" if st.session_state.current_page == "cache_management" else "secondary"):
                     st.session_state.current_page = "cache_management"
                     st.rerun()
                 
-                if st.button("🔍 Search App", use_container_width=True,
+                if st.button("Search", use_container_width=True,
                            type="primary" if st.session_state.current_page == "search" else "secondary"):
                     # Check if server is ready for search
                     if not st.session_state.get('server_ready', False):
@@ -43,7 +43,7 @@ def show_sidebar():
                         st.session_state.current_page = "search"
                     st.rerun()
             
-            if st.button("🚪 Logout", use_container_width=True, type="secondary"):
+            if st.button("Logout", use_container_width=True, type="secondary"):
                 from views.login import logout
                 logout()
             st.markdown("---")

@@ -1,10 +1,42 @@
 import streamlit as st
 from datetime import datetime
 
-APP_VERSION = "0.25.08.11"
+APP_VERSION = "0.25.08.12"
 APP_NAME = "Legal RAG"
 
 CHANGELOG = [
+    {
+        "version": "0.25.08.12",
+        "date": "August 12, 2025",
+        "highlights": [
+            "🗄️ Added comprehensive cache management system for admin users",
+            "🔧 Fixed embedding API response parsing issues",
+            "📋 Enhanced document metadata display with individual field extraction",
+            "🎯 Improved query priority handling in search interface",
+            "♻️ Code cleanup and redundancy removal for better maintainability",
+            "📊 Standardized search results display format across all scenarios"
+        ],
+        "changes": [
+            "Created comprehensive cache management page with statistics, controls, and performance insights",
+            "Added cache toggle functionality to enable/disable caching without losing existing cache",
+            "Implemented cache clearing options: clear all cache and clear old cache (7+ days)",
+            "Added cache performance metrics: total files, size, estimated time saved, efficiency score",
+            "Fixed critical embedding API bug - updated response parsing to handle both old (body-wrapped) and new (direct embeddings) formats",
+            "Enhanced document metadata display to show individual fields instead of aggregated arrays",
+            "Updated dates array extraction to show: Document created on, Document effective date, Document title",
+            "Updated attorneys array extraction to show: Contract requester, Reviewing attorney", 
+            "Fixed query priority logic - custom queries now properly override predefined queries and 'All questions' selection",
+            "Added specific feedback messages when custom queries take priority over other selections",
+            "Standardized single client search results to display dataframe format like multi-client searches",
+            "Created shared document metadata utility to eliminate code duplication",
+            "Refactored metadata extraction logic into reusable functions",
+            "Added cache management to admin navigation and main application routing",
+            "Enhanced cache file details view with modification times, sizes, and processing information",
+            "Implemented cache efficiency scoring and performance insights",
+            "Added proper error handling for cache operations with user feedback",
+            "Updated index name configuration to 'token-chunking-vectors-poc' for latest vector store"
+        ]
+    },
     {
         "version": "0.25.08.11",
         "date": "August 11, 2025",

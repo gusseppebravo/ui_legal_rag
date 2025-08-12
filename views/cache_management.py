@@ -160,7 +160,7 @@ def show_cache_management_page():
     
     st.markdown("""
     <div style="text-align: center; padding: 2rem 0;">
-        <h1>🗄️ Cache management</h1>
+        <h1>Cache management</h1>
         <p style="color: #666; font-size: 1.1rem;">
             Manage search result caching and performance optimization
         </p>
@@ -170,7 +170,7 @@ def show_cache_management_page():
     cache_manager = CacheManager()
     
     # Cache Status Section
-    st.markdown("## 📊 Cache status")
+    st.markdown("## Cache status")
     
     # Current cache setting
     current_cache_setting = st.session_state.get('use_cache_setting', True)
@@ -210,7 +210,7 @@ def show_cache_management_page():
         st.markdown(f"**Cache Status:** {status_color} {status_text}")
     
     # Cache Statistics
-    st.markdown("## 📈 Cache statistics")
+    st.markdown("## Cache statistics")
     
     stats = cache_manager.get_cache_stats()
     
@@ -245,7 +245,7 @@ def show_cache_management_page():
                 st.markdown(f"**Newest cache:** {stats['newest_file'].strftime('%Y-%m-%d %H:%M')}")
     
     # Cache Management Actions
-    st.markdown("## 🛠️ Cache management actions")
+    st.markdown("## Cache management actions")
     
     col1, col2, col3 = st.columns(3)
     
@@ -304,7 +304,7 @@ def show_cache_management_page():
     
     # Cache Performance Insights
     if stats["total_files"] > 0:
-        st.markdown("## 💡 Performance insights")
+        st.markdown("## Performance insights")
         
         efficiency_score = min(100, (stats["total_files"] / 50) * 100)  # Assume 50 cached queries is good
         
@@ -355,7 +355,7 @@ def show_cache_management_page():
                 st.info("No cache file details available")
     
     # Cache Configuration Tips
-    st.markdown("## ℹ️ Cache information")
+    st.markdown("## Cache information")
     
     with st.expander("How caching works", expanded=False):
         st.markdown("""

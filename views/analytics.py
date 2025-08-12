@@ -102,7 +102,7 @@ def show_analytics_page():
     
     st.markdown("""
     <div style="text-align: center; padding: 2rem 0;">
-        <h1>📊 Analytics dashboard</h1>
+        <h1> Analytics dashboard</h1>
         <p style="color: #666; font-size: 1.1rem;">
             Comprehensive usage analytics and insights
         </p>
@@ -180,7 +180,7 @@ def show_analytics_page():
         return
     
     # Summary metrics
-    st.markdown("## 🎯 Key metrics")
+    st.markdown("## Key metrics")
     
     event_types = Counter(event['event_type'] for event in analytics.events)
     unique_sessions = len(set(event['session_id'] for event in analytics.events))
@@ -202,7 +202,7 @@ def show_analytics_page():
         st.metric("Document views", doc_views)
     
     # Event types breakdown
-    st.markdown("## 📊 Event breakdown")
+    st.markdown("## Event breakdown")
     
     col1, col2 = st.columns([2, 1])
     
@@ -225,7 +225,7 @@ def show_analytics_page():
         st.dataframe(event_df, use_container_width=True)
     
     # Timeline analysis
-    st.markdown("## ⏰ Activity timeline")
+    st.markdown("## Activity timeline")
     
     df = analytics.get_events_dataframe()
     if not df.empty and 'timestamp' in df.columns:
@@ -268,7 +268,7 @@ def show_analytics_page():
     search_events = [e for e in analytics.events if e['event_type'] == 'search']
     
     if search_events:
-        st.markdown("## 🔍 Search analytics")
+        st.markdown("## Search analytics")
         
         # Search metrics
         queries = [e['details'].get('query', '') for e in search_events]
@@ -342,7 +342,7 @@ def show_analytics_page():
     doc_events = [e for e in analytics.events if e['event_type'] == 'document_view']
     
     if doc_events:
-        st.markdown("## 📄 Document analytics")
+        st.markdown("## Document analytics")
         
         sources = Counter(e['details'].get('source', 'unknown') for e in doc_events)
         documents = Counter(e['details'].get('document_id', 'unknown') for e in doc_events)
@@ -371,7 +371,7 @@ def show_analytics_page():
     nav_events = [e for e in analytics.events if e['event_type'] == 'navigation']
     
     if nav_events:
-        st.markdown("## 🧭 Navigation patterns")
+        st.markdown("## Navigation patterns")
         
         transitions = [(e['details'].get('from_page'), e['details'].get('to_page')) for e in nav_events]
         transition_counts = Counter(f"{from_p} → {to_p}" for from_p, to_p in transitions)
@@ -421,7 +421,7 @@ def show_analytics_page():
             st.dataframe(error_recent_df, use_container_width=True)
     
     # Raw data export
-    st.markdown("## 📋 Raw data")
+    st.markdown("## Raw data")
     
     with st.expander("View raw event data"):
         if not df.empty:
