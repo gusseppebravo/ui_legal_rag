@@ -11,7 +11,8 @@ import time
 
 API_KEY = "2jIpWCyNRg3Y8lkbmWG0tkyXwYlJn5QaZ1F3yKf7"
 S3_BUCKET = "ml-legal-restricted"
-VECTOR_BUCKET_NAME = "legal-docs-vector-store"
+VECTOR_BUCKET_NAME = "legal-docs-vectors"
+# VECTOR_BUCKET_NAME = "legal-docs-vector-store"
 EMBEDDINGS_URL = "https://zgggzg2iqg.execute-api.us-east-1.amazonaws.com/dev/get_embeddings"
 # INDEX_NAME = 'token-chunking-poc'
 # INDEX_NAME = 'token-chunking-metadata-enriched'

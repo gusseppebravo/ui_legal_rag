@@ -187,9 +187,10 @@ def show_sidebar():
         clients = backend.get_clients()
         queries = backend.get_predefined_queries()
         
-        # App info popover (replaces dataset info)
-        from utils.app_info import show_app_info_popover
-        show_app_info_popover()
+        # App info popover (only for admin users)
+        if st.session_state.get('is_admin', False):
+            from utils.app_info import show_app_info_popover
+            show_app_info_popover()
         
         if 'search_results' in st.session_state and st.session_state.search_results:
             st.markdown("**Last search**")
