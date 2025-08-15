@@ -1,10 +1,44 @@
 import streamlit as st
 from datetime import datetime
 
-APP_VERSION = "0.25.08.12"
+APP_VERSION = "0.25.08.15"
 APP_NAME = "Legal RAG"
 
 CHANGELOG = [
+    {
+        "version": "0.25.08.15",
+        "date": "August 15, 2025",
+        "highlights": [
+            "📊 Refined analytics dashboard with meaningful performance metrics",
+            "💬 Added comprehensive user feedback analytics system",
+            "🎨 Added light/dark theme toggle functionality",
+            "⚡ Enhanced search performance insights with cache analysis",
+            "📈 Improved data visualization and user engagement tracking",
+            "🔧 Fixed document engagement calculation and raw data display"
+        ],
+        "changes": [
+            "Created dedicated user feedback analytics page with satisfaction metrics and trend analysis",
+            "Added user feedback navigation button in admin panel for comprehensive feedback insights",
+            "Fixed document engagement calculation to show meaningful percentage based on unique search sessions",
+            "Enhanced analytics metrics to focus on actionable insights (searches per session, engagement rates)",
+            "Added cache vs non-cache response time analysis in search performance metrics",
+            "Improved raw data table to show all events sorted by timestamp (latest first) without chunking",
+            "Added estimated time processed metric showing total search processing time across all queries",
+            "Enhanced client usage patterns display with usage percentages and impact analysis",
+            "Implemented user feedback logging integration in answer dialogs with detailed context tracking",
+            "Added feedback trend analysis with daily feedback patterns and client-specific satisfaction rates",
+            "Created feedback categorization system (Positive, Partial, Incorrect, Needs Detail)",
+            "Added system improvement insights based on negative feedback patterns",
+            "Implemented light/dark theme toggle functionality in sidebar for better user experience",
+            "Enhanced theme persistence across user sessions with proper state management",
+            "Removed cache information section from cache management page for cleaner interface",
+            "Added feedback analytics access logging for admin usage tracking",
+            "Improved analytics dashboard performance with optimized data processing",
+            "Enhanced search success rate calculations with better result validation",
+            "Added activity timeline focused on meaningful search patterns and trends",
+            "Implemented system health indicators with error rate monitoring and fast search percentages"
+        ]
+    },
     {
         "version": "0.25.08.12",
         "date": "August 12, 2025",

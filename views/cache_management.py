@@ -353,33 +353,3 @@ def show_cache_management_page():
                     st.info(f"Showing first 50 files. Total: {len(files_info)} files")
             else:
                 st.info("No cache file details available")
-    
-    # Cache Configuration Tips
-    st.markdown("## Cache information")
-    
-    with st.expander("How caching works", expanded=False):
-        st.markdown("""
-        **Search Result Caching:**
-        - When caching is enabled, search results are stored locally for identical queries
-        - Cache keys are generated from query text, filters, and search parameters
-        - Cached results are returned instantly without hitting the backend
-        - Cache files are stored in the `cache/` directory as `.pkl` files
-        
-        **Performance Benefits:**
-        - Dramatically faster response times for repeated searches
-        - Reduced load on embedding and vector search services
-        - Better user experience for common queries
-        - Cost savings on API calls
-        
-        **Cache Management:**
-        - Enable/disable caching without losing existing cache
-        - Clear all cache to free up space
-        - Remove old cache files automatically
-        - Monitor cache usage and performance
-        
-        **When to Clear Cache:**
-        - When document corpus has been updated
-        - To free up disk space
-        - When search algorithms have changed
-        - Periodically for maintenance
-        """)

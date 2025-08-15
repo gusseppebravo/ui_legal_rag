@@ -1,22 +1,11 @@
 import streamlit as st
 import pandas as pd
+import time
 from typing import Optional
 from backend.models import SearchResult
 from utils.ui_components import display_document_snippet, display_search_summary, create_info_box, display_search_debug_info
 from utils.session_state import clear_search_results
-
-def _create_single_client_dataframe(search_result: SearchResult) -> pd.DataFrame:
-    """Create a simple dataframe for single client search results"""
-    # Extract simple answer from the AI response
-    simple_answer = _extract_simple_answer(search_result.summary)
-    
-    # Create a simple table with Question and Answer
-    data = [{
-        'Question': search_result.query,
-        'Answer': simple_answer
-    }]
-    
-    return pd.DataFrame(data)
+from utils.interactive_table import _display_dialog_matrix_table, _create_transposed_questions_matrix_dataframe, _style_transposed_questions_matrix, _get_column_config_for_interactive_table
 
 def _markdown_table_to_dataframe(markdown_table: str) -> pd.DataFrame:
     """Convert markdown table to pandas dataframe"""
@@ -24,20 +13,17 @@ def _markdown_table_to_dataframe(markdown_table: str) -> pd.DataFrame:
         lines = markdown_table.strip().split('\n')
         lines = [line.strip() for line in lines if line.strip()]
         
-        # Filter out separator lines (contain only |, -, and spaces)
         clean_lines = []
         for line in lines:
             clean_content = line.replace('|', '').replace('-', '').replace(' ', '')
-            if clean_content:  # Keep lines that have actual content
+            if clean_content:
                 clean_lines.append(line)
         
         if len(clean_lines) < 2:
             return pd.DataFrame({'Error': ['Invalid table format']})
         
-        # Parse header
         header = [col.strip() for col in clean_lines[0].split('|')[1:-1]]
         
-        # Parse data rows
         data = []
         for line in clean_lines[1:]:
             row = [col.strip() for col in line.split('|')[1:-1]]
@@ -48,31 +34,32 @@ def _markdown_table_to_dataframe(markdown_table: str) -> pd.DataFrame:
     except Exception as e:
         return pd.DataFrame({'Error': [f'Failed to parse table: {str(e)}']})
 
-def _style_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """Apply color styling to dataframe rows based on answer column"""
-    def color_rows(row):
-        answer = str(row.get('Answer', '')).lower()
-        
-        if 'no' in answer and ('yes' not in answer or answer.strip() == 'no'):
-            return ['background-color: #fee2e2'] * len(row)  # Light red
-        elif 'yes' in answer and ('limitation' in answer or 'limited' in answer or 'with' in answer):
-            return ['background-color: #fed7aa'] * len(row)  # Light orange
-        elif 'yes' in answer:
-            return ['background-color: #dcfce7'] * len(row)  # Light green
+def _create_single_question_matrix_dataframe(search_results_dict: dict, query: str, selected_clients: list) -> pd.DataFrame:
+    """Create matrix dataframe for single question with multiple clients"""
+    data = []
+    for client in selected_clients:
+        search_result = search_results_dict.get(client)
+        if search_result:
+            simple_answer = _extract_simple_answer(search_result.summary or "No answer")
         else:
-            return [''] * len(row)  # No styling
+            simple_answer = "No data"
+        
+        row = {
+            "Account": client,
+            query: simple_answer
+        }
+        data.append(row)
     
-    return df.style.apply(color_rows, axis=1)
+    return pd.DataFrame(data)
 
 def _run_all_questions_search(backend, selected_clients, selected_doc_type, selected_account_type, 
                              selected_solution_line, selected_related_product, num_results):
     """Run all predefined questions against selected clients"""
-    import time
     start_time = time.time()
     
     predefined_queries = backend.get_predefined_queries()
     all_results = {}
-    all_search_results = {}  # Store full search results for chunk access
+    all_search_results = {}
     
     for query_obj in predefined_queries:
         query = query_obj.query_text
@@ -81,7 +68,6 @@ def _run_all_questions_search(backend, selected_clients, selected_doc_type, sele
         
         for client in selected_clients:
             try:
-                # Use the same search_documents method to ensure consistency
                 search_result = backend.search_documents(
                     query=query,
                     client_filter=client,
@@ -92,7 +78,6 @@ def _run_all_questions_search(backend, selected_clients, selected_doc_type, sele
                     top_k=num_results
                 )
                 
-                # Extract simple answer from full response
                 simple_answer = _extract_simple_answer(search_result.summary or "No answer")
                 client_answers[client] = simple_answer
                 client_search_results[client] = search_result
@@ -121,33 +106,7 @@ def _extract_simple_answer(full_answer: str) -> str:
     else:
         return "Unclear"
 
-def _create_questions_matrix_dataframe(all_results: dict, selected_clients: list) -> pd.DataFrame:
-    """Create dataframe from all questions results"""
-    data = []
-    for question, client_answers in all_results.items():
-        row = {"Question": question}
-        for client in selected_clients:
-            row[client] = client_answers.get(client, "No data")
-        data.append(row)
-    
-    return pd.DataFrame(data)
 
-def _style_questions_matrix(df: pd.DataFrame) -> pd.DataFrame:
-    """Apply color styling to questions matrix dataframe"""
-    def color_cell(val):
-        val_lower = str(val).lower()
-        if 'no' in val_lower and 'yes' not in val_lower:
-            return 'background-color: #fee2e2'  # Light red
-        elif 'yes' in val_lower and ('limitation' in val_lower or 'limited' in val_lower):
-            return 'background-color: #fed7aa'  # Light orange
-        elif 'yes' in val_lower:
-            return 'background-color: #dcfce7'  # Light green
-        else:
-            return ''  # No styling
-    
-    # Apply styling to all columns except Question
-    styled_cols = [col for col in df.columns if col != 'Question']
-    return df.style.applymap(color_cell, subset=styled_cols)
 
 def show_legal_search_page():
     from utils.session_state import has_selected_document
@@ -156,7 +115,6 @@ def show_legal_search_page():
     
     backend = st.session_state.backend
     
-    # Get filter values from sidebar (now managed in app.py)
     selected_account_type = st.session_state.get('account_type_selector', 'Client')
     selected_doc_type = st.session_state.get('doc_type_selector', 'All')
     selected_clients = st.session_state.get('client_selector', [])
@@ -165,7 +123,6 @@ def show_legal_search_page():
     num_results = st.session_state.get('num_results', 5)
     min_relevance = st.session_state.get('min_relevance', 0.0)
     
-    # Main content area - query selection and search
     st.markdown("**Query selection**")
     
     predefined_queries = backend.get_predefined_queries()
@@ -197,7 +154,6 @@ def show_legal_search_page():
         key="custom_query_input"
     )
 
-    # Compact search button with better styling
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         search_button = st.button(
@@ -208,17 +164,13 @@ def show_legal_search_page():
             icon=":material/search:"
         )
 
-    # Handle query selection logic - custom query takes priority when both are provided
     final_query = None
     
-    # Custom query takes priority if provided
     if custom_query.strip():
         final_query = custom_query.strip()
-        run_all_questions = False  # Override "All questions" if custom query is provided
-        # Show a note if "All questions" was selected
+        run_all_questions = False
         if selected_query_text == "All questions":
             st.info("📝 Using custom query. 'All questions' selection will be ignored.")
-        # Show a note if both custom and predefined query are filled
         elif selected_query and selected_query_text != "Select predefined query...":
             st.info("📝 Using custom query. Predefined query will be ignored.")
     elif selected_query and selected_query_text != "Select predefined query...":
@@ -235,7 +187,6 @@ def show_legal_search_page():
                 st.session_state.selected_related_product = selected_related_product or 'All'
                 
                 if run_all_questions:
-                    # Run all questions
                     all_results, all_search_results, total_time = _run_all_questions_search(
                         backend, selected_clients, selected_doc_type, selected_account_type,
                         selected_solution_line, selected_related_product, num_results
@@ -251,7 +202,6 @@ def show_legal_search_page():
                     st.session_state.multi_search_results = None
                     
                 elif len(selected_clients) > 1:
-                    # Multi-client search
                     multi_results = backend.search_multiple_clients(
                         query=final_query,
                         client_filters=selected_clients,
@@ -263,8 +213,8 @@ def show_legal_search_page():
                     )
                     st.session_state.multi_search_results = multi_results
                     st.session_state.search_results = None
+                    st.session_state.all_questions_results = None
                 else:
-                    # Single client search
                     single_client = selected_clients[0] if selected_clients else None
                     search_results = backend.search_documents(
                         query=final_query,
@@ -276,14 +226,31 @@ def show_legal_search_page():
                         top_k=num_results,
                         min_relevance=min_relevance
                     )
-                    st.session_state.search_results = search_results
-                    st.session_state.multi_search_results = None
+                    # Create a unified structure like multi_search_results for consistency
+                    class SingleQueryResult:
+                        def __init__(self, query, client_search_results):
+                            self.query = query
+                            self.client_search_results = client_search_results
+                            # Create a simple tabular summary for single client
+                            if client_search_results:
+                                client_name = list(client_search_results.keys())[0]
+                                client_result = client_search_results[client_name]
+                                simple_answer = _extract_simple_answer(client_result.summary if client_result else "No answer")
+                                self.tabular_summary = f"| Client | Answer |\n|--------|--------|\n| {client_name} | {simple_answer} |"
+                            else:
+                                self.tabular_summary = "No results available"
+                    
+                    multi_results = SingleQueryResult(
+                        query=final_query,
+                        client_search_results={single_client: search_results}
+                    )
+                    st.session_state.multi_search_results = multi_results
+                    st.session_state.search_results = None
+                    st.session_state.all_questions_results = None
                 
-                # Log the search operation
                 try:
                     from utils.usage_logger import log_search, log_predefined_query_usage
                     if run_all_questions:
-                        # Log all questions search
                         log_search(
                             query="[ALL QUESTIONS]",
                             client_filter=", ".join(selected_clients),
@@ -308,15 +275,18 @@ def show_legal_search_page():
                             search_type="multi"
                         )
                     else:
+                        # For single client, extract from multi_results structure
+                        single_client_key = list(multi_results.client_search_results.keys())[0]
+                        single_search_result = multi_results.client_search_results[single_client_key]
                         log_search(
                             query=final_query,
-                            client_filter=selected_clients[0] if selected_clients else None,
+                            client_filter=single_client_key,
                             doc_type_filter=selected_doc_type if selected_doc_type != "All" else None,
                             account_type_filter=selected_account_type if selected_account_type != "All" else None,
                             solution_line_filter=selected_solution_line if selected_solution_line != "All" else None,
                             related_product_filter=selected_related_product if selected_related_product != "All" else None,
-                            result_count=search_results.total_documents,
-                            processing_time=search_results.processing_time,
+                            result_count=single_search_result.total_documents,
+                            processing_time=single_search_result.processing_time,
                             search_type="single"
                         )
                     
@@ -325,10 +295,8 @@ def show_legal_search_page():
                 except Exception:
                     pass
                 
-                # Add to search history
                 from utils.session_state import add_to_search_history
                 if run_all_questions:
-                    # Skip search history for all questions mode
                     pass
                 elif len(selected_clients) > 1:
                     add_to_search_history(
@@ -342,15 +310,18 @@ def show_legal_search_page():
                         multi_results.total_processing_time
                     )
                 else:
+                    # For single client, extract from multi_results structure
+                    single_client_key = list(multi_results.client_search_results.keys())[0]
+                    single_search_result = multi_results.client_search_results[single_client_key]
                     add_to_search_history(
                         final_query,
-                        selected_clients[0] if selected_clients else "None",
+                        single_client_key,
                         selected_doc_type,
                         selected_account_type,
                         selected_solution_line,
                         selected_related_product,
-                        search_results.total_documents,
-                        search_results.processing_time
+                        single_search_result.total_documents,
+                        single_search_result.processing_time
                     )
         else:
             if not run_all_questions and not final_query:
@@ -358,17 +329,19 @@ def show_legal_search_page():
             if not selected_clients:
                 st.error("Please select at least one client.")
 
-    # Display results - handle all three types
+    # Display results
     if 'all_questions_results' in st.session_state and st.session_state.all_questions_results:
-        # All questions results
         all_q_results = st.session_state.all_questions_results
         
         st.markdown("---")
         st.markdown("### Answers")
         
-        df = _create_questions_matrix_dataframe(all_q_results['results'], all_q_results['clients'])
-        styled_df = _style_questions_matrix(df)
+        df = _create_transposed_questions_matrix_dataframe(all_q_results['results'], all_q_results['clients'])
+        styled_df = _style_transposed_questions_matrix(df)
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
+        
+        with st.expander("### Details and feedback", expanded=False):
+            _display_dialog_matrix_table(df, all_questions_results=all_q_results)
         
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -377,180 +350,29 @@ def show_legal_search_page():
             st.metric("Clients analyzed", len(all_q_results['clients']))
         with col3:
             st.metric("Total processing time", f"{all_q_results['processing_time']:.2f}s")
-
-        # Add expandable section for detailed results
-        if 'search_results' in all_q_results and all_q_results['search_results']:
-            with st.expander("📄 Detailed results with document chunks", expanded=False):
-                question_tabs = st.tabs(list(all_q_results['search_results'].keys()))
-                
-                for i, (question, client_results) in enumerate(all_q_results['search_results'].items()):
-                    with question_tabs[i]:
-                        st.markdown(f"**{question}**")
-                        
-                        client_subtabs = st.tabs(all_q_results['clients'])
-                        for j, client in enumerate(all_q_results['clients']):
-                            with client_subtabs[j]:
-                                search_result = client_results.get(client)
-                                if search_result and search_result.snippets:
-                                    st.markdown(f"**AI Answer:** {search_result.summary}")
-                                    st.markdown(f"**Document snippets ({len(search_result.snippets)}):**")
-                                    
-                                    for idx, snippet in enumerate(search_result.snippets):
-                                        display_document_snippet(snippet, f"all_q_{question}_{client}_{idx}")
-                                else:
-                                    st.info("No document snippets found for this client and question.")
-    
-    elif 'search_results' in st.session_state and st.session_state.search_results:
-        # Single client results
-        results = st.session_state.search_results
-        
-        st.markdown("---")
-        
-        # Display tabular summary as the main answer (standardized format)
-        st.markdown("### Answer")
-        df = _create_single_client_dataframe(results)
-        styled_df = _style_dataframe(df)
-        st.dataframe(styled_df, use_container_width=True, hide_index=True)
-        
-        st.markdown("---")
-        
-        # Query used and search results section
-        st.markdown("### Query used and search results")
-        
-        # Show the query used
-        st.markdown("**Query:**")
-        st.markdown(f"""
-        <div style="
-            background-color: #f0f9ff;
-            border: 1px solid #0ea5e9;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        ">
-            <div style="color: #374151; font-style: italic;">
-                "{results.query}"
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("**Search results:**")
-        
-        # Display processing time metrics
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Documents found", results.total_documents)
-        with col2:
-            st.metric("Processing time", f"{results.processing_time:.2f}s")
-        with col3:
-            st.metric("Search status", "✅ Complete")
-        
-        # Add search debug information in expandable section
-        with st.expander("🔍 Search details", expanded=False):
-            display_search_debug_info(
-                results.query,
-                results.client_filter or "Selected client",
-                st.session_state.get('selected_doc_type', 'All'),
-                st.session_state.get('selected_account_type', 'All'),
-                st.session_state.get('selected_solution_line', 'All'),
-                st.session_state.get('selected_related_product', 'All'),
-                len(results.snippets)
-            )
-        
-        # Display document snippets in expandable section
-        if results.snippets:
-            with st.expander(f"📄 Detailed results with document chunks ({len(results.snippets)} documents)", expanded=False):
-                st.markdown("**AI Answer:**")
-                st.markdown(f"""
-                <div style="
-                    background-color: #f8f9fa;
-                    border: 1px solid #dee2e6;
-                    border-radius: 0.4rem;
-                    padding: 0.8rem;
-                    margin-bottom: 1rem;
-                    font-size: 0.95rem;
-                ">
-                    {results.summary}
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.markdown("**Document snippets:**")
-                for idx, snippet in enumerate(results.snippets):
-                    display_document_snippet(snippet, idx)
-        else:
-            st.warning("No document snippets found for this query.")
     
     elif 'multi_search_results' in st.session_state and st.session_state.multi_search_results:
-        # Multi-client results
         multi_results = st.session_state.multi_search_results
         
         st.markdown("---")
-        
-        # Display tabular summary as the main answer (most important part first)
         st.markdown("### Answer")
-        df = _markdown_table_to_dataframe(multi_results.tabular_summary)
-        styled_df = _style_dataframe(df)
-        st.dataframe(styled_df, use_container_width=True, hide_index=True)
         
-        st.markdown("---")
-        
-        # Query used and search results section
-        st.markdown("### Query used and search results")
-        
-        # Show the query used
-        st.markdown("**Query:**")
-        st.markdown(f"""
-        <div style="
-            background-color: #f0f9ff;
-            border: 1px solid #0ea5e9;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        ">
-            <div style="color: #374151; font-style: italic;">
-                "{multi_results.query}"
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("**Search results:**")
-        
-        # Display processing time metrics
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Clients searched", len(multi_results.client_results))
-        with col2:
-            st.metric("Total processing time", f"{multi_results.total_processing_time:.2f}s")
-        with col3:
-            st.metric("Search status", "✅ Complete")
-        
-        # Display individual client results in an expandable section
-        if multi_results.client_search_results:
-            with st.expander("📄 Individual client results (Click to expand)", expanded=False):
-                client_tabs = st.tabs(list(multi_results.client_search_results.keys()))
-                
-                for i, (client, client_result) in enumerate(multi_results.client_search_results.items()):
-                    with client_tabs[i]:
-                        st.markdown(f"#### {client}")
-                        
-                        # Show client-specific summary
-                        st.markdown("**AI answer:**")
-                        st.markdown(f"""
-                        <div style="
-                            background-color: #f8f9fa;
-                            border: 1px solid #dee2e6;
-                            border-radius: 0.4rem;
-                            padding: 0.8rem;
-                            margin-bottom: 1rem;
-                            font-size: 0.95rem;
-                        ">
-                            {client_result.summary}
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # Show snippets for this client
-                        if client_result.snippets:
-                            st.markdown(f"**Document snippets ({len(client_result.snippets)}):**")
-                            for idx, snippet in enumerate(client_result.snippets):
-                                display_document_snippet(snippet, f"{client}_{idx}")
-                        else:
-                            st.info("No document snippets found for this client.")
+        # Both single and multiple clients use the same matrix format
+        if hasattr(multi_results, 'client_search_results') and multi_results.client_search_results:
+            client_results_dict = multi_results.client_search_results
+            query = multi_results.query
+            clients = list(client_results_dict.keys())
+            
+            df = _create_single_question_matrix_dataframe(client_results_dict, query, clients)
+            styled_df = _style_transposed_questions_matrix(df)
+            st.dataframe(styled_df, use_container_width=True, hide_index=True)
+            
+            with st.expander("### Details and feedback", expanded=False):
+                _display_dialog_matrix_table(df, search_results=multi_results)
+        else:
+            # Fallback to original table format
+            df = _markdown_table_to_dataframe(multi_results.tabular_summary)
+            st.dataframe(df, use_container_width=True, hide_index=True)
+            
+            with st.expander("### Details and feedback", expanded=False):
+                _display_dialog_matrix_table(df, search_results=multi_results)

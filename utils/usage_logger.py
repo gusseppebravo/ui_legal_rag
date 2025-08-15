@@ -158,6 +158,20 @@ class UsageLogger:
             'filters': filters_applied
         })
     
+    def log_feedback(self, question: str, answer: str, client: Optional[str] = None, 
+                    feedback_type: str = "", custom_feedback: str = "", 
+                    search_context: Dict[str, Any] = None):
+        """Log user feedback on answers"""
+        self.log_event('feedback', {
+            'question': question[:500],  # Truncate long questions
+            'answer': answer[:200],  # Truncate long answers
+            'client': client,
+            'feedback_type': feedback_type,
+            'custom_feedback': custom_feedback[:1000] if custom_feedback else "",  # Truncate long feedback
+            'has_custom_feedback': bool(custom_feedback and custom_feedback.strip()),
+            'search_context': search_context or {}
+        })
+    
     def get_user_agent(self) -> str:
         """Get user agent if available"""
         try:

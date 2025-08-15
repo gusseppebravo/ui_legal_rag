@@ -29,6 +29,11 @@ def show_sidebar():
                     st.session_state.current_page = "analytics"
                     st.rerun()
                 
+                if st.button("User feedback", use_container_width=True,
+                           type="primary" if st.session_state.current_page == "user_feedback" else "secondary"):
+                    st.session_state.current_page = "user_feedback"
+                    st.rerun()
+                
                 if st.button("Cache management", use_container_width=True,
                            type="primary" if st.session_state.current_page == "cache_management" else "secondary"):
                     st.session_state.current_page = "cache_management"
@@ -290,7 +295,7 @@ def main():
     
     # Show server status page first if server is not ready (but not for analytics or cache management)
     if (not st.session_state.server_ready and 
-        st.session_state.current_page not in ["login", "server_status", "analytics", "cache_management"]):
+        st.session_state.current_page not in ["login", "server_status", "analytics", "cache_management", "user_feedback"]):
         st.session_state.current_page = "server_status"
     
     # Only show sidebar and nav for main app pages
@@ -323,6 +328,15 @@ def main():
         if st.session_state.get('is_admin', False):
             from views.analytics import show_analytics_page
             show_analytics_page()
+        else:
+            st.error("Access denied. Admin privileges required.")
+            st.session_state.current_page = "search"
+            st.rerun()
+    elif st.session_state.current_page == "user_feedback":
+        # Only allow user feedback for admin users
+        if st.session_state.get('is_admin', False):
+            from views.user_feedback import show_user_feedback_page
+            show_user_feedback_page()
         else:
             st.error("Access denied. Admin privileges required.")
             st.session_state.current_page = "search"

@@ -102,9 +102,9 @@ def show_analytics_page():
     
     st.markdown("""
     <div style="text-align: center; padding: 2rem 0;">
-        <h1> Analytics dashboard</h1>
+        <h1>Analytics dashboard</h1>
         <p style="color: #666; font-size: 1.1rem;">
-            Comprehensive usage analytics and insights
+            Key performance metrics and usage insights
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -159,292 +159,193 @@ def show_analytics_page():
         if not df.empty:
             csv = df.to_csv(index=False)
             st.download_button(
-                label="Download full data (CSV)",
+                label="Download analytics data (CSV)",
                 data=csv,
                 file_name=f"analytics_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv"
             )
-            
-            # Log export action when button is clicked
-            if st.session_state.get('download_full_data_clicked', False):
-                try:
-                    from utils.usage_logger import log_analytics_access
-                    log_analytics_access("export", export_type="full_data_csv")
-                    st.session_state.download_full_data_clicked = False
-                except Exception:
-                    pass
     
     # Main dashboard
     if not analytics.events:
         st.info("No data for the selected time period.")
         return
     
-    # Summary metrics
-    st.markdown("## Key metrics")
+    # Key performance metrics
+    st.markdown("## Key performance metrics")
     
     event_types = Counter(event['event_type'] for event in analytics.events)
     unique_sessions = len(set(event['session_id'] for event in analytics.events))
+    search_count = event_types.get('search', 0)
+    doc_views = event_types.get('document_view', 0)
     
     col1, col2, col3, col4 = st.columns(4)
     
-    with col1:
-        st.metric("Total events", len(analytics.events))
-    
-    with col2:
-        st.metric("Unique sessions", unique_sessions)
-    
-    with col3:
-        search_count = event_types.get('search', 0)
-        st.metric("Total searches", search_count)
-    
-    with col4:
-        doc_views = event_types.get('document_view', 0)
-        st.metric("Document views", doc_views)
-    
-    # Event types breakdown
-    st.markdown("## Event breakdown")
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        # Event types pie chart
-        if event_types:
-            fig_pie = px.pie(
-                values=list(event_types.values()),
-                names=list(event_types.keys()),
-                title="Event types distribution"
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
-    
-    with col2:
-        # Event types table
-        event_df = pd.DataFrame([
-            {"Event Type": k, "Count": v, "Percentage": f"{v/len(analytics.events)*100:.1f}%"}
-            for k, v in event_types.most_common()
-        ])
-        st.dataframe(event_df, use_container_width=True)
-    
-    # Timeline analysis
-    st.markdown("## Activity timeline")
-    
-    df = analytics.get_events_dataframe()
-    if not df.empty and 'timestamp' in df.columns:
-        # Daily activity
-        df['date'] = df['timestamp'].dt.date
-        daily_activity = df.groupby(['date', 'event_type']).size().reset_index(name='count')
-        
-        fig_timeline = px.line(
-            daily_activity,
-            x='date',
-            y='count',
-            color='event_type',
-            title="Daily activity by event type",
-            markers=True
-        )
-        st.plotly_chart(fig_timeline, use_container_width=True)
-        
-        # Hourly heatmap
-        df['hour'] = df['timestamp'].dt.hour
-        df['day_of_week'] = df['timestamp'].dt.day_name()
-        
-        hourly_activity = df.groupby(['day_of_week', 'hour']).size().reset_index(name='count')
-        hourly_pivot = hourly_activity.pivot(index='day_of_week', columns='hour', values='count').fillna(0)
-        
-        # Reorder days of week
-        day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        hourly_pivot = hourly_pivot.reindex(day_order)
-        
-        fig_heatmap = px.imshow(
-            hourly_pivot.values,
-            x=hourly_pivot.columns,
-            y=hourly_pivot.index,
-            title="Activity heatmap (by hour and day)",
-            color_continuous_scale="Blues",
-            aspect="auto"
-        )
-        st.plotly_chart(fig_heatmap, use_container_width=True)
-    
-    # Search analytics
     search_events = [e for e in analytics.events if e['event_type'] == 'search']
     
+    with col1:
+        st.metric("Active sessions", unique_sessions, help="Unique user sessions in selected period")
+    
+    with col2:
+        search_rate = search_count / unique_sessions if unique_sessions > 0 else 0
+        st.metric("Searches per session", f"{search_rate:.1f}", help="Average searches performed per session")
+    
+    with col3:
+        if search_count > 0:
+            # Calculate unique search sessions that led to document views
+            search_sessions_with_docs = set()
+            doc_events = [e for e in analytics.events if e['event_type'] == 'document_view']
+            for doc_event in doc_events:
+                search_sessions_with_docs.add(doc_event['session_id'])
+            
+            search_sessions = set(e['session_id'] for e in search_events)
+            engagement_rate = len(search_sessions_with_docs) / len(search_sessions) * 100 if search_sessions else 0
+            st.metric("Document engagement", f"{engagement_rate:.1f}%", help="% of search sessions that led to document views")
+        else:
+            st.metric("Document engagement", "0%")
+    
+    with col4:
+        if search_events:
+            processing_times = [e['details'].get('processing_time', 0) for e in search_events]
+            avg_time = sum(processing_times) / len(processing_times) if processing_times else 0
+            est_time_saved = search_count * avg_time  # Estimate if all were uncached
+            time_saved_min = est_time_saved / 60
+            st.metric("Est. time processed", f"{time_saved_min:.1f}m", help="Total processing time for all searches")
+        else:
+            st.metric("Est. time processed", "0m")
+    
+    # Search performance insights
     if search_events:
-        st.markdown("## Search analytics")
+        st.markdown("## Search performance")
         
-        # Search metrics
         queries = [e['details'].get('query', '') for e in search_events]
         result_counts = [e['details'].get('result_count', 0) for e in search_events]
         processing_times = [e['details'].get('processing_time', 0) for e in search_events]
         successful_searches = len([e for e in search_events if e['details'].get('has_results', False)])
         
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.metric("Success rate", f"{(successful_searches/len(search_events)*100):.1f}%")
+            success_rate = (successful_searches/len(search_events)*100) if search_events else 0
+            st.metric("Search success rate", f"{success_rate:.1f}%", help="Searches that returned results")
         
         with col2:
             avg_results = sum(result_counts) / len(result_counts) if result_counts else 0
-            st.metric("Avg results", f"{avg_results:.1f}")
+            st.metric("Avg results per search", f"{avg_results:.1f}", help="Average number of results returned")
         
         with col3:
-            avg_time = sum(processing_times) / len(processing_times) if processing_times else 0
-            st.metric("Avg search time", f"{avg_time:.2f}s")
+            # Calculate response times with and without cache
+            cached_searches = [e for e in search_events if e['details'].get('processing_time', 0) < 0.5]  # Assume <0.5s is cached
+            non_cached_searches = [e for e in search_events if e['details'].get('processing_time', 0) >= 0.5]
+            
+            if non_cached_searches:
+                non_cached_times = [e['details'].get('processing_time', 0) for e in non_cached_searches]
+                avg_non_cached = sum(non_cached_times) / len(non_cached_times)
+                cache_rate = len(cached_searches) / len(search_events) * 100
+                st.metric("Avg response time (uncached)", f"{avg_non_cached:.2f}s", 
+                         help=f"Average response time for non-cached searches. Cache hit rate: {cache_rate:.1f}%")
+            else:
+                avg_time = sum(processing_times) / len(processing_times) if processing_times else 0
+                st.metric("Avg response time", f"{avg_time:.2f}s", help="Average search processing time")
         
-        with col4:
-            avg_query_length = sum(len(q) for q in queries) / len(queries) if queries else 0
-            st.metric("Avg query length", f"{avg_query_length:.0f} chars")
-        
-        # Search queries analysis
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Most common queries
-            query_counter = Counter(q[:50] + '...' if len(q) > 50 else q for q in queries if q)
+        # Most valuable queries
+        if queries:
+            st.markdown("### Most common search topics")
+            query_counter = Counter(q[:60] + '...' if len(q) > 60 else q for q in queries if q)
             if query_counter:
+                top_queries = query_counter.most_common(8)
                 query_df = pd.DataFrame([
-                    {"Query": k, "Count": v}
-                    for k, v in query_counter.most_common(10)
+                    {"Query": k, "Count": v, "Impact": f"{v/len(queries)*100:.1f}% of searches"}
+                    for k, v in top_queries
                 ])
-                st.markdown("**Most common queries**")
-                st.dataframe(query_df, use_container_width=True)
+                st.dataframe(query_df, use_container_width=True, hide_index=True)
         
-        with col2:
-            # Filter usage
-            client_filters = [e['details'].get('client_filter') for e in search_events if e['details'].get('client_filter')]
-            if client_filters:
-                client_counter = Counter(client_filters)
+        # Client usage patterns
+        client_filters = [e['details'].get('client_filter') for e in search_events if e['details'].get('client_filter') and e['details'].get('client_filter') != 'All']
+        if client_filters:
+            st.markdown("### Client usage patterns")
+            client_counter = Counter(client_filters)
+            if len(client_counter) > 1:
+                top_clients = client_counter.most_common(10)
                 client_df = pd.DataFrame([
-                    {"Client Filter": k, "Count": v}
-                    for k, v in client_counter.most_common(10)
+                    {"Client": k, "Searches": v, "Usage %": f"{v/sum(client_counter.values())*100:.1f}%"}
+                    for k, v in top_clients
                 ])
-                st.markdown("**Client filter usage**")
-                st.dataframe(client_df, use_container_width=True)
-        
-        # Search results distribution
-        if result_counts:
-            fig_results = px.histogram(
-                x=result_counts,
-                nbins=20,
-                title="Search results distribution",
-                labels={'x': 'Number of results', 'y': 'Frequency'}
-            )
-            st.plotly_chart(fig_results, use_container_width=True)
-        
-        # Processing time analysis
-        if processing_times:
-            fig_time = px.box(
-                y=processing_times,
-                title="Search processing time distribution",
-                labels={'y': 'Processing time (seconds)'}
-            )
-            st.plotly_chart(fig_time, use_container_width=True)
+                st.dataframe(client_df, use_container_width=True, hide_index=True)
     
-    # Document viewing analytics
-    doc_events = [e for e in analytics.events if e['event_type'] == 'document_view']
+    # Daily activity trends
+    df = analytics.get_events_dataframe()
+    if not df.empty and 'timestamp' in df.columns and len(df) > 1:
+        st.markdown("## Usage trends")
+        
+        # Focus on search activity over time
+        search_df = df[df['event_type'] == 'search'].copy()
+        if not search_df.empty:
+            search_df['date'] = search_df['timestamp'].dt.date
+            daily_searches = search_df.groupby('date').size().reset_index(name='searches')
+            
+            if len(daily_searches) > 1:
+                fig_daily = px.line(
+                    daily_searches,
+                    x='date',
+                    y='searches',
+                    title="Daily search activity",
+                    markers=True
+                )
+                fig_daily.update_layout(showlegend=False)
+                st.plotly_chart(fig_daily, use_container_width=True)
     
-    if doc_events:
-        st.markdown("## Document analytics")
-        
-        sources = Counter(e['details'].get('source', 'unknown') for e in doc_events)
-        documents = Counter(e['details'].get('document_id', 'unknown') for e in doc_events)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if sources:
-                source_df = pd.DataFrame([
-                    {"View Source": k, "Count": v}
-                    for k, v in sources.most_common()
-                ])
-                st.markdown("**Document view sources**")
-                st.dataframe(source_df, use_container_width=True)
-        
-        with col2:
-            if documents:
-                doc_df = pd.DataFrame([
-                    {"Document ID": k, "Views": v}
-                    for k, v in documents.most_common(10)
-                ])
-                st.markdown("**Most viewed documents**")
-                st.dataframe(doc_df, use_container_width=True)
-    
-    # Navigation patterns
-    nav_events = [e for e in analytics.events if e['event_type'] == 'navigation']
-    
-    if nav_events:
-        st.markdown("## Navigation patterns")
-        
-        transitions = [(e['details'].get('from_page'), e['details'].get('to_page')) for e in nav_events]
-        transition_counts = Counter(f"{from_p} → {to_p}" for from_p, to_p in transitions)
-        
-        if transition_counts:
-            nav_df = pd.DataFrame([
-                {"Navigation Path": k, "Count": v}
-                for k, v in transition_counts.most_common(10)
-            ])
-            st.dataframe(nav_df, use_container_width=True)
-    
-    # Error analysis
+    # System health indicators
     error_events = [e for e in analytics.events if e['event_type'] == 'error']
-    
-    if error_events:
-        st.markdown("## ⚠️ Error analysis")
+    if error_events or search_events:
+        st.markdown("## System health")
         
-        error_types = Counter(e['details'].get('error_type', 'unknown') for e in error_events)
-        
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.metric("Total errors", len(error_events))
-            error_rate = len(error_events) / len(analytics.events) * 100
-            st.metric("Error rate", f"{error_rate:.2f}%")
+            error_rate = len(error_events) / len(analytics.events) * 100 if analytics.events else 0
+            delta_color = "normal" if error_rate < 5 else "inverse"
+            st.metric("Error rate", f"{error_rate:.1f}%", delta=None, delta_color=delta_color)
         
         with col2:
-            if error_types:
-                error_df = pd.DataFrame([
-                    {"Error Type": k, "Count": v}
-                    for k, v in error_types.most_common()
-                ])
-                st.dataframe(error_df, use_container_width=True)
+            if search_events:
+                fast_searches = sum(1 for e in search_events if e['details'].get('processing_time', 0) < 2.0)
+                performance_score = (fast_searches / len(search_events) * 100) if search_events else 0
+                st.metric("Fast searches (<2s)", f"{performance_score:.1f}%", help="Searches completed in under 2 seconds")
         
-        # Recent errors
-        st.markdown("**Recent errors**")
-        recent_errors = []
-        for error in error_events[-10:]:  # Last 10 errors
-            recent_errors.append({
-                "Timestamp": error['timestamp'],
-                "Type": error['details'].get('error_type', 'unknown'),
-                "Message": error['details'].get('error_message', '')[:100]
-            })
-        
-        if recent_errors:
-            error_recent_df = pd.DataFrame(recent_errors)
-            st.dataframe(error_recent_df, use_container_width=True)
+        with col3:
+            # Show recent activity
+            recent_24h_events = analytics.filter_by_days(1)
+            st.metric("Activity (24h)", len(recent_24h_events), help="Events in last 24 hours")
     
-    # Raw data export
+    # Raw data (show all rows, ordered by timestamp descending)
     st.markdown("## Raw data")
     
-    with st.expander("View raw event data"):
+    with st.expander("View event data"):
         if not df.empty:
-            st.dataframe(df, use_container_width=True)
+            # Sort by timestamp descending (latest first)
+            df_sorted = df.sort_values('timestamp', ascending=False)
+            st.dataframe(df_sorted, use_container_width=True, hide_index=True)
             
-            # Additional export for searches only
-            search_df = df[df['event_type'] == 'search'].copy()
-            if not search_df.empty:
-                search_csv = search_df.to_csv(index=False)
+            # Export options
+            col1, col2 = st.columns(2)
+            with col1:
+                all_csv = df_sorted.to_csv(index=False)
                 st.download_button(
-                    label="Download search data only (CSV)",
-                    data=search_csv,
-                    file_name=f"search_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    label="Download all data (CSV)",
+                    data=all_csv,
+                    file_name=f"all_events_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv"
                 )
-                
-                # Log search data export
-                if st.session_state.get('download_search_data_clicked', False):
-                    try:
-                        from utils.usage_logger import log_analytics_access
-                        log_analytics_access("export", export_type="search_data_csv")
-                        st.session_state.download_search_data_clicked = False
-                    except Exception:
-                        pass
+            
+            with col2:
+                search_df = df_sorted[df_sorted['event_type'] == 'search'].copy()
+                if not search_df.empty:
+                    search_csv = search_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download search data (CSV)",
+                        data=search_csv,
+                        file_name=f"search_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
         else:
             st.info("No data to display")
