@@ -11,10 +11,6 @@ def setup_page_config():
     )
     st.markdown("""
     <style>
-    .stAppHeader { display: none; }
-    .stAppDeployButton { display: none; }
-    .stApp > header { display: none; }
-    
     /* Hide sidebar collapse/expand functionality completely */
     [data-testid="collapsedControl"] { display: none !important; }
     [data-testid="stSidebarCollapseButton"] { display: none !important; }

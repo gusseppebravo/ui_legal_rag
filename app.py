@@ -238,6 +238,9 @@ def show_sidebar():
 
 def show_top_nav():
     """Display top navigation bar"""
+    # Add some space at the top to avoid overlapping with Streamlit menu
+    st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
+    
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:

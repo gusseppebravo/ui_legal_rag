@@ -38,13 +38,13 @@ def _style_transposed_questions_matrix(df: pd.DataFrame) -> pd.DataFrame:
     def color_cell(val):
         val_lower = str(val).lower()
         if 'no' in val_lower and 'yes' not in val_lower:
-            return 'background-color: #fee2e2'
+            return 'background-color: #fee2e2; color: #7f1d1d; font-weight: 500;'
         elif 'yes' in val_lower and ('limitation' in val_lower or 'limited' in val_lower):
-            return 'background-color: #fed7aa'
+            return 'background-color: #fed7aa; color: #9a3412; font-weight: 500;'
         elif 'yes' in val_lower:
-            return 'background-color: #dcfce7'
+            return 'background-color: #dcfce7; color: #166534; font-weight: 500;'
         else:
-            return ''
+            return 'color: #374151; font-weight: 500;'
     styled_cols = [col for col in df.columns if col != 'Account']
     return df.style.map(color_cell, subset=styled_cols)
 
@@ -54,7 +54,7 @@ def _show_answer_dialog(question: str, answer: str, search_results=None, client=
     """Dialog showing answer, details and feedback for a single answer cell."""
     bg_color = _get_answer_background_color(answer)
     st.markdown(f"""
-    <div style="background-color: {bg_color}; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; border: 1px solid #e5e7eb;">
+    <div style="background-color: {bg_color}; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; border: 1px solid #e5e7eb; color: black;">
         <strong>Answer:</strong> {answer}
     </div>
     """, unsafe_allow_html=True)
