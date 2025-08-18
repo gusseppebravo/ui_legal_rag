@@ -149,8 +149,9 @@ class LegalRAGBackend:
 
         try:
             response = self.s3v.query_vectors(
-                vectorBucketName=VECTOR_BUCKET_NAME,
-                indexName=INDEX_NAME,
+                # vectorBucketName=VECTOR_BUCKET_NAME,
+                # indexName=INDEX_NAME,
+                indexArn = f'arn:aws:s3vectors:us-east-1:254281203237:bucket/{VECTOR_BUCKET_NAME}/index/{INDEX_NAME}',
                 topK=top_k,
                 queryVector={
                     'float32': query_embedding
@@ -159,7 +160,7 @@ class LegalRAGBackend:
                 returnDistance=True,
                 filter=final_filter
             )
-            
+    
             # Post-process for related_product filtering if needed
             if related_product_filter and related_product_filter != "All" and response:
                 filtered_vectors = []
