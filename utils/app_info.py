@@ -1,10 +1,28 @@
 import streamlit as st
 from datetime import datetime
 
-APP_VERSION = "0.25.08.15"
+APP_VERSION = "0.25.08.18"
 APP_NAME = "Legal RAG"
 
 CHANGELOG = [
+    {
+        "version": "0.25.08.18",
+        "date": "August 18, 2025",
+        "highlights": [
+            "🎨 Enhanced dark theme compatibility and UI improvements",
+            "🚀 Improved server status handling during embedding model startup",
+            "🔧 Fixed dialog popup text visibility issues"
+        ],
+        "changes": [
+            "Fixed logo positioning to prevent overlap with Streamlit menu bar in dark theme",
+            "Enhanced answer matrix font colors for better visibility in dark theme mode",
+            "Fixed dialog popup text color to use black font for improved readability",
+            "Improved server status page handling when embedding model is initializing",
+            "Enhanced user experience during server startup with better status feedback",
+            "Added proper styling adjustments for dark theme compatibility across all components",
+            "Refined UI components to maintain consistency between light and dark theme modes"
+        ]
+    },
     {
         "version": "0.25.08.15",
         "date": "August 15, 2025",
