@@ -163,7 +163,8 @@ def show_server_status_page():
                     st.rerun()
                 
                 else:
-                    st.error(f"❌ Server not ready: {health_result.get('error', 'Unknown error')}")
+                    st.warning(f"Server not ready: Please wait for the server to start. ")
+                    # st.warning(f"Server not ready: {health_result.get('error', 'Unknown error')}")
                     
                     # Log server connection issues
                     try:
@@ -197,12 +198,14 @@ def show_server_status_page():
                                     st.info("Cold start request sent. Server is warming up...")
                                     st.info("⏱️ This may take 5-10 minutes. Auto-checking every minute...")
                                 elif cold_start_result["status"] == "failed":
-                                    st.error(f"Failed to send cold start request: HTTP {cold_start_result['status_code']}")
-                                    if 'response' in cold_start_result:
-                                        st.error(f"Response: {cold_start_result['response']}")
+                                    pass
+                                    # st.error(f"Failed to send cold start request: HTTP {cold_start_result['status_code']}")
+                                    # if 'response' in cold_start_result:
+                                    #     st.error(f"Response: {cold_start_result['response']}")
                                 else:  # status == "error"
-                                    st.error(f"Failed to send cold start request: {cold_start_result.get('error', 'Unknown error')}")
-                                    st.error("This is usually a network connectivity issue or the API endpoint is down.")
+                                    pass
+                                    # st.error(f"Failed to send cold start request: {cold_start_result.get('error', 'Unknown error')}")
+                                    # st.error("This is usually a network connectivity issue or the API endpoint is down.")
                     
                     else:
                         # Show waiting message
