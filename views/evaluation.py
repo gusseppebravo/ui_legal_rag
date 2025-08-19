@@ -4,6 +4,42 @@ import os
 import plotly.graph_objects as go
 
 def show_evaluation_page():
+    # Evaluation pipeline diagram (dark theme friendly)
+    st.markdown("### Evaluation pipeline")
+    fig_pipe = go.Figure()
+    steps = [
+        "Synthetic test set",
+        "LLM critic",
+        "Ask question to RAG",
+        "Judge RAG response",
+        "Calculate accuracy"
+    ]
+    box_color = "#23272f"  # dark box
+    border_color = "#4f8cff"  # blue border
+    text_color = "#e5e7eb"  # light text
+    arrow_color = "#4f8cff"
+    for i, step in enumerate(steps):
+        fig_pipe.add_shape(
+            type="rect",
+            x0=i*2, x1=i*2+1.5, y0=0, y1=1,
+            line=dict(color=border_color, width=2), fillcolor=box_color, layer="below"
+        )
+        fig_pipe.add_annotation(
+            x=i*2+0.75, y=0.5, text=step, showarrow=False, font=dict(size=14, color=text_color),
+            xanchor="center", yanchor="middle"
+        )
+        if i < len(steps)-1:
+            fig_pipe.add_annotation(
+                x=i*2+1.6, y=0.5, text="→", showarrow=False, font=dict(size=24, color=arrow_color),
+                xanchor="left", yanchor="middle"
+            )
+    fig_pipe.update_xaxes(visible=False, range=[-0.5, len(steps)*2-0.5])
+    fig_pipe.update_yaxes(visible=False, range=[-0.2, 1.2])
+    fig_pipe.update_layout(
+        height=160, margin=dict(l=10, r=10, t=10, b=10),
+        plot_bgcolor="#181c22", paper_bgcolor="#181c22"
+    )
+    st.plotly_chart(fig_pipe, use_container_width=True)
     st.markdown("""
     <div style="text-align: center; padding: 2rem 0;">
         <h1>Evaluation Results</h1>
