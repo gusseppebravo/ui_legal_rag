@@ -94,12 +94,12 @@ def _run_all_questions_search(backend, selected_clients, selected_doc_type, sele
     return all_results, all_search_results, total_time
 
 def _extract_simple_answer(full_answer: str) -> str:
-    """Extract simple Yes/No/Yes with limitations answer from full response"""
+    """Extract simple Yes/No/Maybe answer from full response"""
     answer_lower = full_answer.lower()
     
     if any(phrase in answer_lower for phrase in ["yes", "allowed", "permitted", "can"]):
         if any(phrase in answer_lower for phrase in ["limitation", "restriction", "condition", "but", "however", "except"]):
-            return "Yes with limitations"
+            return "Maybe"
         return "Yes"
     elif any(phrase in answer_lower for phrase in ["no", "not allowed", "prohibited", "cannot", "forbidden"]):
         return "No"
@@ -338,18 +338,18 @@ def show_legal_search_page():
         
         df = _create_transposed_questions_matrix_dataframe(all_q_results['results'], all_q_results['clients'])
         styled_df = _style_transposed_questions_matrix(df)
-        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+        # st.dataframe(styled_df, use_container_width=True, hide_index=True)
         
-        with st.expander("### Details and feedback", expanded=False):
-            _display_dialog_matrix_table(df, all_questions_results=all_q_results)
+        # with st.expander("### Details and feedback", expanded=False):
+        _display_dialog_matrix_table(df, all_questions_results=all_q_results)
         
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Questions analyzed", len(all_q_results['results']))
-        with col2:
-            st.metric("Clients analyzed", len(all_q_results['clients']))
-        with col3:
-            st.metric("Total processing time", f"{all_q_results['processing_time']:.2f}s")
+        # col1, col2, col3 = st.columns(3)
+        # with col1:
+        #     st.metric("Questions analyzed", len(all_q_results['results']))
+        # with col2:
+        #     st.metric("Clients analyzed", len(all_q_results['clients']))
+        # with col3:
+        #     st.metric("Total processing time", f"{all_q_results['processing_time']:.2f}s")
     
     elif 'multi_search_results' in st.session_state and st.session_state.multi_search_results:
         multi_results = st.session_state.multi_search_results
@@ -365,14 +365,14 @@ def show_legal_search_page():
             
             df = _create_single_question_matrix_dataframe(client_results_dict, query, clients)
             styled_df = _style_transposed_questions_matrix(df)
-            st.dataframe(styled_df, use_container_width=True, hide_index=True)
+            # st.dataframe(styled_df, use_container_width=True, hide_index=True)
             
-            with st.expander("### Details and feedback", expanded=False):
-                _display_dialog_matrix_table(df, search_results=multi_results)
+            # with st.expander("### Details and feedback", expanded=False):
+            _display_dialog_matrix_table(df, search_results=multi_results)
         else:
             # Fallback to original table format
             df = _markdown_table_to_dataframe(multi_results.tabular_summary)
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            # st.dataframe(df, use_container_width=True, hide_index=True)
             
-            with st.expander("### Details and feedback", expanded=False):
-                _display_dialog_matrix_table(df, search_results=multi_results)
+            # with st.expander("### Details and feedback", expanded=False):
+            _display_dialog_matrix_table(df, search_results=multi_results)

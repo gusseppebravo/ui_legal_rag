@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from typing import Optional
 from utils.ui_components import display_document_snippet
+from streamlit_extras.stylable_container import stylable_container
 
 
 def _get_answer_background_color(answer: str) -> str:
@@ -9,7 +10,7 @@ def _get_answer_background_color(answer: str) -> str:
     answer_lower = str(answer).lower()
     if 'no' in answer_lower and ('yes' not in answer_lower or answer_lower.strip() == 'no'):
         return '#fee2e2'
-    elif 'yes' in answer_lower and ('limitation' in answer_lower or 'limited' in answer_lower or 'with' in answer_lower):
+    elif 'maybe' in answer_lower:
         return '#fed7aa'
     elif 'yes' in answer_lower:
         return '#dcfce7'
@@ -39,7 +40,7 @@ def _style_transposed_questions_matrix(df: pd.DataFrame) -> pd.DataFrame:
         val_lower = str(val).lower()
         if 'no' in val_lower and 'yes' not in val_lower:
             return 'background-color: #fee2e2; color: #7f1d1d; font-weight: 500;'
-        elif 'yes' in val_lower and ('limitation' in val_lower or 'limited' in val_lower):
+        elif 'maybe' in val_lower:
             return 'background-color: #fed7aa; color: #9a3412; font-weight: 500;'
         elif 'yes' in val_lower:
             return 'background-color: #dcfce7; color: #166534; font-weight: 500;'
@@ -59,21 +60,85 @@ def _show_answer_dialog(question: str, answer: str, search_results=None, client=
     </div>
     """, unsafe_allow_html=True)
 
-    with st.expander("More details", expanded=True):
-        # details
-        with st.expander("📄 Details", expanded=False):
-            if search_results:
-                if hasattr(search_results, 'summary'):
-                    st.markdown("**Full AI answer:**")
-                    st.write(search_results.summary)
-                    if hasattr(search_results, 'snippets') and search_results.snippets:
-                        st.markdown(f"**Document snippets ({len(search_results.snippets)}):**")
-                        for idx, snippet in enumerate(search_results.snippets):
-                            display_document_snippet(snippet, f"dialog_single_{idx}")
+    # with st.expander("More details", expanded=True):
+    # feedback
+    with st.expander("💬 Feedback", expanded=False):
+        st.markdown("**Help us improve the system:**")
+        feedback_options = [
+            "Answer is accurate and helpful",
+            "Answer is partially correct but incomplete",
+            "Answer is incorrect or misleading",
+            "Answer lacks sufficient detail",
+        ]
+        key_base = f"feedback_{question}_{client or 'single'}_{str(answer)[:10]}"
+        selected_feedback = st.radio("Select feedback type:", options=feedback_options, key=key_base + "_radio")
+        custom_feedback = st.text_area("Additional comments (optional):", placeholder="Please provide specific feedback...", height=100, key=key_base + "_text")
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("Submit feedback", type="primary", use_container_width=True, key=key_base + "_submit"):
+                # Log feedback to usage logger
+                try:
+                    from utils.usage_logger import get_usage_logger
+                    logger = get_usage_logger()
+                    logger.log_feedback(
+                        question=question,
+                        answer=answer,
+                        client=client,
+                        feedback_type=selected_feedback,
+                        custom_feedback=custom_feedback,
+                        search_context={
+                            'has_search_results': search_results is not None,
+                            'has_all_questions_results': all_questions_results is not None
+                        }
+                    )
+                except Exception:
+                    pass
+                
+                if 'user_feedback' not in st.session_state:
+                    st.session_state.user_feedback = {}
+                st.session_state.user_feedback[key_base] = {
+                    'question': question,
+                    'answer': answer,
+                    'client': client,
+                    'selected_feedback': selected_feedback,
+                    'custom_feedback': custom_feedback,
+                    'timestamp': pd.Timestamp.now()
+                }
+                st.success("✅ Feedback submitted successfully!")
+                st.rerun()
+        with col2:
+            if st.button("Cancel", use_container_width=True, key=key_base + "_cancel"):
+                st.rerun()
+                
+    # details
+    with st.expander("📄 Details", expanded=True):
+        if search_results:
+            if hasattr(search_results, 'summary'):
+                st.markdown("**Full AI answer:**")
+                st.write(search_results.summary)
+                if hasattr(search_results, 'snippets') and search_results.snippets:
+                    st.markdown(f"**Document snippets ({len(search_results.snippets)}):**")
+                    for idx, snippet in enumerate(search_results.snippets):
+                        display_document_snippet(snippet, f"dialog_single_{idx}")
+                else:
+                    st.info("No document snippets available")
+            elif hasattr(search_results, 'client_search_results') and search_results.client_search_results:
+                # Handle multi-client results - show only the specific client if provided
+                if client and client in search_results.client_search_results:
+                    # Show only the specific client's data
+                    client_result = search_results.client_search_results[client]
+                    st.markdown(f"**{client}:**")
+                    if client_result and hasattr(client_result, 'summary') and client_result.summary:
+                        st.markdown("**Full AI answer:**")
+                        st.write(client_result.summary)
+                    if client_result and hasattr(client_result, 'snippets') and client_result.snippets:
+                        st.markdown(f"**Document snippets ({len(client_result.snippets)}):**")
+                        for i, snippet in enumerate(client_result.snippets[:5]):
+                            display_document_snippet(snippet, f"dialog_multi_{client}_{i}")
                     else:
-                        st.info("No document snippets available")
-                elif hasattr(search_results, 'client_search_results') and search_results.client_search_results:
-                    # Handle multi-client results with tabular_summary
+                        st.info(f"No document sources for {client}")
+                else:
+                    # Show all clients if no specific client is provided (fallback)
                     if hasattr(search_results, 'tabular_summary'):
                         st.markdown("**Full summary:**")
                         st.write(search_results.tabular_summary)
@@ -93,74 +158,27 @@ def _show_answer_dialog(question: str, answer: str, search_results=None, client=
                                 display_document_snippet(snippet, f"dialog_multi_{client_name}_{i}")
                         else:
                             st.info(f"No document sources for {client_name}")
-            elif all_questions_results and client:
-                search_results_data = all_questions_results.get('search_results', {})
-                if question in search_results_data and client in search_results_data[question]:
-                    client_search_result = search_results_data[question][client]
-                    if client_search_result and hasattr(client_search_result, 'summary'):
-                        st.markdown("**Full AI answer:**")
-                        st.write(client_search_result.summary)
-                        if hasattr(client_search_result, 'snippets') and client_search_result.snippets:
-                            st.markdown(f"**Document snippets ({len(client_search_result.snippets)}):**")
-                            for idx, snippet in enumerate(client_search_result.snippets):
-                                display_document_snippet(snippet, f"dialog_all_q_{question}_{client}_{idx}")
-                        else:
-                            st.info("No document snippets available")
+        elif all_questions_results and client:
+            search_results_data = all_questions_results.get('search_results', {})
+            if question in search_results_data and client in search_results_data[question]:
+                client_search_result = search_results_data[question][client]
+                if client_search_result and hasattr(client_search_result, 'summary'):
+                    st.markdown("**Full AI answer:**")
+                    st.write(client_search_result.summary)
+                    if hasattr(client_search_result, 'snippets') and client_search_result.snippets:
+                        st.markdown(f"**Document snippets ({len(client_search_result.snippets)}):**")
+                        for idx, snippet in enumerate(client_search_result.snippets):
+                            display_document_snippet(snippet, f"dialog_all_q_{question}_{client}_{idx}")
                     else:
-                        st.info("No detailed information available")
+                        st.info("No document snippets available")
                 else:
                     st.info("No detailed information available")
             else:
                 st.info("No detailed information available")
+        else:
+            st.info("No detailed information available")
 
-        # feedback
-        with st.expander("💬 Feedback", expanded=False):
-            st.markdown("**Help us improve the system:**")
-            feedback_options = [
-                "Answer is accurate and helpful",
-                "Answer is partially correct but incomplete",
-                "Answer is incorrect or misleading",
-                "Answer lacks sufficient detail",
-            ]
-            key_base = f"feedback_{question}_{client or 'single'}_{str(answer)[:10]}"
-            selected_feedback = st.radio("Select feedback type:", options=feedback_options, key=key_base + "_radio")
-            custom_feedback = st.text_area("Additional comments (optional):", placeholder="Please provide specific feedback...", height=100, key=key_base + "_text")
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                if st.button("Submit feedback", type="primary", use_container_width=True, key=key_base + "_submit"):
-                    # Log feedback to usage logger
-                    try:
-                        from utils.usage_logger import get_usage_logger
-                        logger = get_usage_logger()
-                        logger.log_feedback(
-                            question=question,
-                            answer=answer,
-                            client=client,
-                            feedback_type=selected_feedback,
-                            custom_feedback=custom_feedback,
-                            search_context={
-                                'has_search_results': search_results is not None,
-                                'has_all_questions_results': all_questions_results is not None
-                            }
-                        )
-                    except Exception:
-                        pass
-                    
-                    if 'user_feedback' not in st.session_state:
-                        st.session_state.user_feedback = {}
-                    st.session_state.user_feedback[key_base] = {
-                        'question': question,
-                        'answer': answer,
-                        'client': client,
-                        'selected_feedback': selected_feedback,
-                        'custom_feedback': custom_feedback,
-                        'timestamp': pd.Timestamp.now()
-                    }
-                    st.success("✅ Feedback submitted successfully!")
-                    st.rerun()
-            with col2:
-                if st.button("Cancel", use_container_width=True, key=key_base + "_cancel"):
-                    st.rerun()
+
 
 
 def _display_dialog_matrix_table(df: pd.DataFrame, search_results=None, all_questions_results=None):
@@ -171,8 +189,33 @@ def _display_dialog_matrix_table(df: pd.DataFrame, search_results=None, all_ques
         for idx, row in df.iterrows():
             question = row.get('Question', '')
             answer = row.get('Answer', '')
-            if st.button(str(answer), key=f"dlg_{idx}_single_{str(answer)[:10]}", use_container_width=True):
-                _show_answer_dialog(question, str(answer), search_results)
+            
+            # Get background color for styling
+            bg_color = _get_answer_background_color(str(answer))
+            answer_lower = str(answer).lower()
+            
+            # Determine text color based on answer type
+            if 'no' in answer_lower and 'yes' not in answer_lower:
+                text_color = "#7f1d1d"
+            elif 'maybe' in answer_lower:
+                text_color = "#9a3412"
+            elif 'yes' in answer_lower:
+                text_color = "#166534"
+            else:
+                text_color = "#374151"
+            
+            with stylable_container(
+                f"answer_button_{idx}",
+                css_styles=f"""
+                button {{
+                    background-color: {bg_color};
+                    color: {text_color};
+                    font-weight: 500;
+                    border: 1px solid #e5e7eb;
+                }}""",
+            ):
+                if st.button(str(answer), key=f"dlg_{idx}_single_{str(answer)[:10]}", use_container_width=True):
+                    _show_answer_dialog(question, str(answer), search_results)
     else:
         # Matrix format with Account column
         st.markdown("**Click on any answer to view details and provide feedback:**")
@@ -189,10 +232,32 @@ def _display_dialog_matrix_table(df: pd.DataFrame, search_results=None, all_ques
                     if col_name == 'Account':
                         st.markdown(f"*{value}*")
                     else:
-                        bg = _get_answer_background_color(str(value))
-                        if st.button(str(value), key=f"dlg_mat_{idx}_{i}_{str(value)[:10]}", use_container_width=True):
-                            _show_answer_dialog(col_name, str(value), search_results, client=row.get('Account'), all_questions_results=all_questions_results
-                            )
+                        # Get background color for styling
+                        bg_color = _get_answer_background_color(str(value))
+                        value_lower = str(value).lower()
+                        
+                        # Determine text color based on answer type
+                        if 'no' in value_lower and 'yes' not in value_lower:
+                            text_color = "#7f1d1d"
+                        elif 'maybe' in value_lower:
+                            text_color = "#9a3412"
+                        elif 'yes' in value_lower:
+                            text_color = "#166534"
+                        else:
+                            text_color = "#374151"
+                        
+                        with stylable_container(
+                            f"matrix_button_{idx}_{i}",
+                            css_styles=f"""
+                            button {{
+                                background-color: {bg_color};
+                                color: {text_color};
+                                font-weight: 500;
+                                border: 1px solid #e5e7eb;
+                            }}""",
+                        ):
+                            if st.button(str(value), key=f"dlg_mat_{idx}_{i}_{str(value)[:10]}", use_container_width=True):
+                                _show_answer_dialog(col_name, str(value), search_results, client=row.get('Account'), all_questions_results=all_questions_results)
 
 def _create_transposed_questions_matrix_dataframe(all_results: dict, selected_clients: list) -> pd.DataFrame:
     """Create transposed dataframe from all questions results (clients as rows, questions as columns)"""

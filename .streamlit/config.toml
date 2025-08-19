@@ -9,4 +9,4 @@ gatherUsageStats = false
 showErrorDetails = false
 
 [theme]
-base = "light"
+base="dark"

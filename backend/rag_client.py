@@ -349,7 +349,7 @@ Individual Client Responses:
 {context}
 
 Create a markdown table with three columns: "Client", "Answer" and "Summary". 
-In the Answer column directly answer the question, maybe Yes, No, Yes with limitation, etc.
+In the Answer column directly answer the question, maybe Yes, No, Maybe, etc.
 In the Summary column keep summary concise but informative.
 Focus on key findings, permissions, restrictions, or requirements for each client.
 

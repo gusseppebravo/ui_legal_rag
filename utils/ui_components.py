@@ -4,13 +4,17 @@ from backend.models import DocumentSnippet
 
 def setup_page_config():
     st.set_page_config(
-        page_title="Legal RAG",
-        page_icon="📋",
+        page_title="Contract Intelligence",
+        page_icon="assets/logo_tab.png",
         layout="wide",
         initial_sidebar_state="expanded",
     )
     st.markdown("""
     <style>
+    .stAppHeader { display: none; }
+    .stAppDeployButton { display: none; }
+    .stApp > header { display: none; }
+                
     /* Hide sidebar collapse/expand functionality completely */
     [data-testid="collapsedControl"] { display: none !important; }
     [data-testid="stSidebarCollapseButton"] { display: none !important; }
@@ -28,7 +32,7 @@ def setup_page_config():
     .block-container { 
         padding-top: 1rem; 
         padding-bottom: 1rem;
-        max-width: 1200px;
+        max-width: 100%;
     }
     
     /* Smaller fonts and spacing */

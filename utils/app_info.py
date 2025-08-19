@@ -1,10 +1,35 @@
 import streamlit as st
 from datetime import datetime
 
-APP_VERSION = "0.25.08.18"
+APP_VERSION = "0.25.08.19"
 APP_NAME = "Legal RAG"
 
 CHANGELOG = [
+    {
+        "version": "0.25.08.19",
+        "date": "August 19, 2025",
+        "highlights": [
+            "📝 Simplified answer format by changing 'Yes with limitations' to 'Maybe'",
+            "🎨 Enhanced UI layout for better space utilization and color consistency",
+            "🔧 Updated color coding system for new answer format",
+            "🎯 Fixed dialog display issues for better user experience"
+        ],
+        "changes": [
+            "Changed answer format from 'Yes with limitations' to 'Maybe' for better readability and conciseness",
+            "Updated color styling to handle 'Maybe' answers with appropriate orange background (#fed7aa)",
+            "Enhanced answer matrix layout to use more screen width for better data visualization",
+            "Modified RAG client prompts to generate 'Maybe' instead of 'Yes with limitation' responses",
+            "Updated all answer extraction logic across search components to use simplified format",
+            "Improved content layout by removing width constraints from top navigation",
+            "Enhanced container width utilization from fixed 1200px to 95% of screen width",
+            "Added styled container functionality for dialog buttons using streamlit_extras",
+            "Implemented color-coordinated buttons in Details and feedback section matching dataframe colors",
+            "Fixed single question dialog display to show only specific client data instead of all clients",
+            "Enhanced client-specific filtering in dialog details for better data organization",
+            "Improved button styling with proper background and text colors for Yes/No/Maybe answers",
+            "Added streamlit_extras dependency for advanced UI styling capabilities"
+        ]
+    },
     {
         "version": "0.25.08.18",
         "date": "August 18, 2025",
