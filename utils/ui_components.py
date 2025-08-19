@@ -124,7 +124,6 @@ def _display_document_details(snippet: DocumentSnippet):
     st.markdown("**Content**")
     st.markdown(f"""
     <div style="
-        background-color: #f8f9fa; 
         padding: 1rem; 
         border-radius: 0.4rem; 
         border-left: 3px solid #007bff;

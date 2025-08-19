@@ -50,7 +50,7 @@ def _style_transposed_questions_matrix(df: pd.DataFrame) -> pd.DataFrame:
     return df.style.map(color_cell, subset=styled_cols)
 
 
-@st.dialog("Answer details")
+@st.dialog("Answer details", width="large")
 def _show_answer_dialog(question: str, answer: str, search_results=None, client=None, all_questions_results=None):
     """Dialog showing answer, details and feedback for a single answer cell."""
     bg_color = _get_answer_background_color(answer)
@@ -60,58 +60,10 @@ def _show_answer_dialog(question: str, answer: str, search_results=None, client=
     </div>
     """, unsafe_allow_html=True)
 
-    # with st.expander("More details", expanded=True):
-    # feedback
-    with st.expander("💬 Feedback", expanded=False):
-        st.markdown("**Help us improve the system:**")
-        feedback_options = [
-            "Answer is accurate and helpful",
-            "Answer is partially correct but incomplete",
-            "Answer is incorrect or misleading",
-            "Answer lacks sufficient detail",
-        ]
-        key_base = f"feedback_{question}_{client or 'single'}_{str(answer)[:10]}"
-        selected_feedback = st.radio("Select feedback type:", options=feedback_options, key=key_base + "_radio")
-        custom_feedback = st.text_area("Additional comments (optional):", placeholder="Please provide specific feedback...", height=100, key=key_base + "_text")
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            if st.button("Submit feedback", type="primary", use_container_width=True, key=key_base + "_submit"):
-                # Log feedback to usage logger
-                try:
-                    from utils.usage_logger import get_usage_logger
-                    logger = get_usage_logger()
-                    logger.log_feedback(
-                        question=question,
-                        answer=answer,
-                        client=client,
-                        feedback_type=selected_feedback,
-                        custom_feedback=custom_feedback,
-                        search_context={
-                            'has_search_results': search_results is not None,
-                            'has_all_questions_results': all_questions_results is not None
-                        }
-                    )
-                except Exception:
-                    pass
-                
-                if 'user_feedback' not in st.session_state:
-                    st.session_state.user_feedback = {}
-                st.session_state.user_feedback[key_base] = {
-                    'question': question,
-                    'answer': answer,
-                    'client': client,
-                    'selected_feedback': selected_feedback,
-                    'custom_feedback': custom_feedback,
-                    'timestamp': pd.Timestamp.now()
-                }
-                st.success("✅ Feedback submitted successfully!")
-                st.rerun()
-        with col2:
-            if st.button("Cancel", use_container_width=True, key=key_base + "_cancel"):
-                st.rerun()
-                
-    # details
-    with st.expander("📄 Details", expanded=True):
+    tabs = st.tabs(["Details", "Feedback"])
+
+    with tabs[0]:
+        # Details tab (default)
         if search_results:
             if hasattr(search_results, 'summary'):
                 st.markdown("**Full AI answer:**")
@@ -142,7 +94,6 @@ def _show_answer_dialog(question: str, answer: str, search_results=None, client=
                     if hasattr(search_results, 'tabular_summary'):
                         st.markdown("**Full summary:**")
                         st.write(search_results.tabular_summary)
-                    
                     # Show individual client details
                     st.markdown("**Document sources:**")
                     for client_name, client_result in search_results.client_search_results.items():
@@ -177,6 +128,54 @@ def _show_answer_dialog(question: str, answer: str, search_results=None, client=
                 st.info("No detailed information available")
         else:
             st.info("No detailed information available")
+
+    with tabs[1]:
+        # Feedback tab
+        st.markdown("**Help us improve the system:**")
+        feedback_options = [
+            "Answer is accurate and helpful",
+            "Answer is partially correct but incomplete",
+            "Answer is incorrect or misleading",
+            "Answer lacks sufficient detail",
+        ]
+        key_base = f"feedback_{question}_{client or 'single'}_{str(answer)[:10]}"
+        selected_feedback = st.radio("Select feedback type:", options=feedback_options, key=key_base + "_radio")
+        custom_feedback = st.text_area("Additional comments (optional):", placeholder="Please provide specific feedback...", height=100, key=key_base + "_text")
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("Submit feedback", type="primary", use_container_width=True, key=key_base + "_submit"):
+                # Log feedback to usage logger
+                try:
+                    from utils.usage_logger import get_usage_logger
+                    logger = get_usage_logger()
+                    logger.log_feedback(
+                        question=question,
+                        answer=answer,
+                        client=client,
+                        feedback_type=selected_feedback,
+                        custom_feedback=custom_feedback,
+                        search_context={
+                            'has_search_results': search_results is not None,
+                            'has_all_questions_results': all_questions_results is not None
+                        }
+                    )
+                except Exception:
+                    pass
+                if 'user_feedback' not in st.session_state:
+                    st.session_state.user_feedback = {}
+                st.session_state.user_feedback[key_base] = {
+                    'question': question,
+                    'answer': answer,
+                    'client': client,
+                    'selected_feedback': selected_feedback,
+                    'custom_feedback': custom_feedback,
+                    'timestamp': pd.Timestamp.now()
+                }
+                st.success("✅ Feedback submitted successfully!")
+                st.rerun()
+        with col2:
+            if st.button("Cancel", use_container_width=True, key=key_base + "_cancel"):
+                st.rerun()
 
 
 
