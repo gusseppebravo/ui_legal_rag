@@ -28,17 +28,22 @@ def show_sidebar():
                            type="primary" if st.session_state.current_page == "analytics" else "secondary"):
                     st.session_state.current_page = "analytics"
                     st.rerun()
-                
+
+                if st.button("Evaluation", use_container_width=True,
+                           type="primary" if st.session_state.current_page == "evaluation" else "secondary"):
+                    st.session_state.current_page = "evaluation"
+                    st.rerun()
+
                 if st.button("User feedback", use_container_width=True,
                            type="primary" if st.session_state.current_page == "user_feedback" else "secondary"):
                     st.session_state.current_page = "user_feedback"
                     st.rerun()
-                
+
                 if st.button("Cache management", use_container_width=True,
                            type="primary" if st.session_state.current_page == "cache_management" else "secondary"):
                     st.session_state.current_page = "cache_management"
                     st.rerun()
-                
+
                 if st.button("Search", use_container_width=True,
                            type="primary" if st.session_state.current_page == "search" else "secondary"):
                     # Check if server is ready for search
@@ -259,9 +264,7 @@ def show_top_nav():
                 st.session_state.current_page = "search"
                 st.rerun()
     else:
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.image("assets/file.png")
+        pass
     
     st.markdown("---")
 
@@ -295,9 +298,9 @@ def main():
         show_login_page()
         return
     
-    # Show server status page first if server is not ready (but not for analytics or cache management)
+    # Show server status page first if server is not ready (but not for analytics, evaluation, or cache management)
     if (not st.session_state.server_ready and 
-        st.session_state.current_page not in ["login", "server_status", "analytics", "cache_management", "user_feedback"]):
+        st.session_state.current_page not in ["login", "server_status", "analytics", "evaluation", "cache_management", "user_feedback"]):
         st.session_state.current_page = "server_status"
     
     # Only show sidebar and nav for main app pages
@@ -330,6 +333,15 @@ def main():
         if st.session_state.get('is_admin', False):
             from views.analytics import show_analytics_page
             show_analytics_page()
+        else:
+            st.error("Access denied. Admin privileges required.")
+            st.session_state.current_page = "search"
+            st.rerun()
+    elif st.session_state.current_page == "evaluation":
+        # Only allow evaluation for admin users
+        if st.session_state.get('is_admin', False):
+            from views.evaluation import show_evaluation_page
+            show_evaluation_page()
         else:
             st.error("Access denied. Admin privileges required.")
             st.session_state.current_page = "search"

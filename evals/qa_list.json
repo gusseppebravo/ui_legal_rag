@@ -1,0 +1,83 @@
+[
+  {
+        "question": "Under the MSA, which circumstance requires Cotiviti to indemnify ACA Health Benefits Fund?",
+        "options": {
+            "A": "Non-payment of Fees by Client",
+            "B": "Failure to maintain Required Insurance",
+            "C": "Consequential Loss caused by Cotiviti",
+            "D": "Wilful Misconduct or Gross Negligence by Cotiviti"
+        },
+        "correct_answer": "D",
+        "explanation": "Cotiviti is required to indemnify ACA Health Benefits Fund for any Claim arising from Wilful Misconduct, Gross Negligence, or illegal acts under the agreement.",
+        "source": "s3://ml-legal-restricted/contract-docs/73278/ACA - Cotiviti Australia - MSA - JK - 10052023 - Dynamics_73278.pdf",
+        "client": "ACA Health Benefits Fund",
+        "document_type": "MSA",
+        "context": "11.2 Cotiviti must at all times indemnify and hold harmless Clien t and its Personnel from and \nagainst any Claim for Loss (excluding Consequential Loss) or otherwise against those indemnified (whether the Claim is by Cotiviti or a third party) where the Claim arises out of \nor in relation to; \n(a) any Wilful Misconduct, Gross Negligence, or illegal or unlawful act or omission  of \nCotiviti in the supply of, or failure to supply,  Services under this Agreement ;  \n(b) a Claim made by a third party that the use by Cotiviti of any Cotiviti materials used \nby Cotiviti under this Agreement is an infringement of that third party's Intellectual \nProperty Rights or contractual rights; \n(c) any act or omission of Cotiviti which results in a Claim for Loss against Client  for \nbreach o f Privacy Laws;  \n(d) any injury to or death of any person caused by any act or omission of Cotiviti or its \nPersonnel; or \n(e) any damage to real or tangible property caused by any act or omission of Cotiviti or \nits Personnel. 11.3 A party's liability under an indemnity under this Agreement will be reduced to the extent that \nthe other party fails to take reasonable steps to mitigate its Loss, or increases its Loss, through its own acts or omissions. 12. Insurance  \n12.1 Each party must effect and maintain, at its own cost, the  Required Insurance with a reputable \ninsurer on terms consistent with prudent risk management. 12.2 If requested by one party, the other party must provide to Client  certificates of currency for each  \nRequired Insurance. 13. Suspension of Services \n13.1 Cotiviti may suspend providing the Services to Client : \n(a) for non -payment  of Fees in accordance with this Agreement ; or \n(b) as otherwise permitted under this Agreement.",
+        "id": "qa_10",
+        "relevance": 1,
+        "relevance_explanation": "The context contains substantive legal information relevant to the ACA Health Benefits Fund as it details indemnity, insurance, and service suspension clauses within a Master Services Agreement (MSA) involving Cotiviti. This information is useful for generating legal questions about obligations, liabilities, and risk management in the context of the services provided by Cotiviti to the client.",
+        "factuality": 1,
+        "critic_explanation": "The question asks under which circumstance Cotiviti must indemnify the client, ACA Health Benefits Fund, according to the MSA. The correct answer, D, is supported by the context provided in section 11.2(a), which states that Cotiviti must indemnify the client for any claim arising out of Wilful Misconduct or Gross Negligence. Therefore, the Q&A pair is factually accurate."
+    },
+    {
+        "question": "What restrictions are placed on the use of Confidential Information according to the NDA with 7-Eleven?",
+        "options": {
+            "A": "It must only be used for evaluating the Potential Transaction and cannot be disclosed without prior written consent.",
+            "B": "It can only be used for marketing purposes related to the Potential Transaction.",
+            "C": "It can be used for any commercial purpose as long as it remains confidential.",
+            "D": "It can be shared with any third party if they agree to confidentiality."
+        },
+        "correct_answer": "A",
+        "explanation": "The NDA specifies that Confidential Information must be kept strictly confidential and used only for evaluating the Potential Transaction, with disclosure requiring prior written consent.",
+        "source": "s3://ml-legal-restricted/contract-docs/73385/7-Eleven - Cotiviti  - NDA - MS -  11152023 - Dynamics_73385.pdf",
+        "client": "7-Eleven",
+        "document_type": "NDA",
+        "context": "Each  Party  agrees  as follows:  \n \n(a) Except as expressly provided in this Agreement, the Confidential \nInformation shall be kept strictly confidential and shall not, without the prior written consent of  \nthe Disclosing Party, be disclosed by the Nondisclosing Party or the Nondisclosing Party\u2019s \nRepresentatives, in any manner whatsoever, in whole or in part, and shall not be used by the \nNondisclosing Party or the Nondisclosing Party\u2019s Representatives, directly or indirectly, for any \npurpose other than evaluating the Potential  Transaction. Moreover, the Nondisclosing Party  will \ntransmit the Confidential Information only to those Representatives who need to know the Confidential Information for the purpose of evaluating the Potential Transaction, who are \ninformed by the Nondisclosing Party of the confidential nature of the Confidential Information, \nand who have agreed in writing to be bound by provisions no less restrictive than those \ncontained in  this Agreement. The Nondisclosing Party  shall be responsible for any  breach by its \nRepresentatives of the terms of this Agreement. (b) Without the prior written consent of the Disclosing Party, the \nNondisclosing Party shall not, and shall direct the Nondisclosing Party\u2019s Representatives not to, \ndisclose to any other Person (including any Affiliates or Representatives to which disclosure is \nnot expressly permitted by this Agreement) that the Confidential Information has been made \navailable, that discussions or negotiations are taking place concerning the Potential  \nTransaction, or any of the terms, conditions, or other facts with respect to the Potential Transaction, including the status thereof or the terms of this Agreement. (c) If either Party determines that it does not wish to enter into the Potential \nTransaction, it will promptly advise the other Party of that fact.",
+        "id": "qa_24",
+        "relevance": 1,
+        "relevance_explanation": "The context is relevant as it contains substantive legal information from a Non-Disclosure Agreement (NDA), detailing confidentiality obligations and restrictions, which are pertinent to legal queries regarding how 7-Eleven handles confidential information in potential transactions.",
+        "factuality": 1,
+        "critic_explanation": "The question is answerable from the context provided. The marked correct answer, option A, is directly supported by the context, which states that the Confidential Information must be kept strictly confidential, used only for evaluating the Potential Transaction, and cannot be disclosed without prior written consent. This aligns with the details specified in the NDA."
+    },
+    {
+        "question": "What is the required procedure for managing user IDs and passwords according to the Aetna Life Insurance Company Addendum?",
+        "options": {
+            "A": "Passwords must be shared among users for efficiency.",
+            "B": "Usernames must be disabled or deleted within 24 hours of employee termination.",
+            "C": "Passwords must be changed every 30 days.",
+            "D": "Passwords must consist solely of dictionary words."
+        },
+        "correct_answer": "B",
+        "explanation": "The addendum specifies that usernames must be disabled, deleted, or the password changed within 24 hours upon employee transfer or termination.",
+        "source": "s3://ml-legal-restricted/contract-docs/59280/Aetna Life Insurance Company - Cotiviti - Addendum - JK - 06012020 - Dynamics 59280.pdf",
+        "client": "Aetna Life Insurance Company",
+        "document_type": "Addendum",
+        "context": "USB thumb drives, floppies, CD/DVD, Blackberry, \nbackup tapes etc.). Encryption must be a FIPS 140 -2 certified algorithm which is 128 bit or higher, such \nas AES. E. Antivirus software. All workstations, laptops and other systems that process and/or store Company PHI \nmust install and actively use comprehensive anti -virus software solution with automatic updates scheduled \nat least daily. F. Patch Management. All workstations, laptops and oth er systems that process and/or store Company PHI \nmust have critical security patches applied, with system reboot if necessary. There must be a documented \npatch management process which determines installation timeframe based on risk assessment and vendor \nrecommendations. At a maximum, all applicable patches must be installed within thirty (30) days of \nvendor release. G. User IDs and Password Controls. All users must be issued a unique user name for accessing Company \nPHI Username must be promptly disabled, dele ted, or the password changed upon the transfer or \ntermination of an employee with knowledge of the password, at maximum within twenty -four (24) hours. Passwords are not to be shared. Passwords must be at least eight (8) characters and must be a non -\ndiction ary word. Passwords must not be stored in readable format on the computer. Passwords must be \nchanged every ninety (90) days, preferably every sixty (60) days. Passwords must be changed if revealed \nor compromised. Passwords must be composed of characters fr om at least three of the following four \ngroups from the standard keyboard:  \n\u25aa Upper case letters (A -Z)  \n\u25aa Lower case letters (a -z) \n\u25aa Arabic numerals (0 -9) \n\u25aa Non-alphanumeric characters (punctuation symbols)  \nH. Data Destruction.",
+        "id": "qa_129",
+        "relevance": 1,
+        "relevance_explanation": "The context is relevant as it contains legal information regarding data security protocols which could relate to Aetna Life Insurance Company's handling of PHI (Protected Health Information). This is pertinent for generating legal questions about compliance with data protection regulations and company policies.",
+        "factuality": 1,
+        "critic_explanation": "The marked correct answer B is factually accurate according to the context, which states that usernames must be promptly disabled, deleted, or passwords changed upon transfer or termination of an employee within 24 hours. The options A, C, and D are incorrect based on the context provided."
+    },
+    {
+        "question": "What is the required timeframe to correct data extract problems according to the State-approved System Deficiency and Notification Process?",
+        "options": {
+            "A": "Within 10 business days",
+            "B": "Within 5 business days",
+            "C": "Within 3 business days",
+            "D": "Within 1 business day"
+        },
+        "correct_answer": "B",
+        "explanation": "The legal document specifies that all data extract problems must be corrected within five (5) business days of problem identification.",
+        "source": "s3://ml-legal-restricted/contract-docs/55945/Accenture - Cotiviti SubK Agmt (Jan 2017)[CURRENT].pdf",
+        "client": "Accenture",
+        "document_type": "MSA",
+        "context": "MAC 06 | Prepare and submit a corrective action plan to the State, in accordance with State-approved corrective\n\naction plan guidelines, when a problem has been identified that impacts MAR reporting. AHC 11 Produce and deliver accurate and verified ad hoc query results, with content and in media and format. and within a timeframe approved by the State,\n\nAHC 16 Notify and State within one-(1) business day of the identification of any data extract problems in\naccordance with the State-approved System Deficiency and Notification Process. Correct all data\nextract problems within five (5) business days of problem identification and notify the State of\ncorrection. AHC 17 If data extract problems cannot be corrected within five (5) business days, develop and submit a\ncorrective action plan for State approval within five (5) business days of the date it was identified the\nproblems could not be resolved. Correct the data extract problems in aceordance with the State-\n\n| approved corrective action plan. Establish and maintain an online data report repository which identifies version history of each report. Maintain the capacity to complete interactive inquires (submit a request and return requested data)\n\nwithin bventy (20) seconds, 99% of the time. An interim response of \u201cwaiting\u201d or \u201cyour request is\n\nbeimg processed\u201d does not meet the State's definition of complete. Provide automated access, twenty-three (23) hours per day, seven (7) days per week, to client\n\neligibility and other State-approved information and transactions, 98% of the lime. Ne more than two\n\n(2), one-hour periods of unscheduled downtime may occur within a thirty (30) day monitoring period.",
+        "id": "qa_130",
+        "relevance": 1,
+        "relevance_explanation": "The context contains substantive legal information relevant to Accenture, as it outlines obligations and corrective action procedures according to a Master Service Agreement (MSA) with a State entity. This includes specific requirements for data reporting, problem notification, and system uptime guarantees, making it pertinent for generating meaningful legal questions related to service delivery and compliance.",
+        "factuality": 1,
+        "critic_explanation": "The Q&A is factually correct based on the context provided. The legal document specifies that data extract problems must be corrected within five (5) business days of problem identification, which directly supports the marked correct answer, B - Within 5 business days."
+    }
+
+]

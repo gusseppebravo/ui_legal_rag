@@ -1,0 +1,9 @@
+{
+  "accuracy": 0.7674418604651163,
+  "correct_count": 132,
+  "incorrect_count": 25,
+  "unknown_count": 15,
+  "total_count": 172,
+  "answerable_accuracy": 0.8407643312101911,
+  "coverage": 0.9127906976744186
+}

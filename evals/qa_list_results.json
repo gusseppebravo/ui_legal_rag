@@ -1,0 +1,75 @@
+[
+  {
+    "id": "qa_10",
+    "question": "Under the MSA, which circumstance requires Cotiviti to indemnify ACA Health Benefits Fund?",
+    "options": {
+      "A": "Non-payment of Fees by Client",
+      "B": "Failure to maintain Required Insurance",
+      "C": "Consequential Loss caused by Cotiviti",
+      "D": "Wilful Misconduct or Gross Negligence by Cotiviti"
+    },
+    "correct_answer": "D",
+    "predicted_answer": "D",
+    "is_correct": true,
+    "response": "The context provided does not explicitly mention ACA Health Benefits Fund or the specific circumstances under which Cotiviti is required to indemnify ACA Health Benefits Fund. However, we can analyze the indemnification clauses related to Cotiviti's obligations to clients in general.\n\nFrom the documents:\n\n1. Document [2] outlines Cotiviti's indemnification obligations, stating that Cotiviti shall defend the client against third-party claims and indemnify the client for losses arising from claims alleging infringement or violation of U.S. patents or copyrights by Cotiviti's software, applications, or services. This does not directly address ACA Health Benefits Fund or the specific circumstances listed in the options.\n\n2. Document [5] mentions Cotiviti's liability for fines or penalties imposed against Humana due to Cotiviti's breach of the Business Associate Agreement, but again, this does not directly relate to ACA Health Benefits Fund or the options provided.\n\nGiven the options:\n\nA: Non-payment of Fees by Client - There is no mention of indemnification related to non-payment of fees by the client.\n\nB: Failure to maintain Required Insurance - Document [5] discusses insurance requirements but does not link failure to maintain insurance with indemnification obligations.\n\nC: Consequential Loss caused by Cotiviti - There is no explicit mention of indemnification for consequential loss caused by Cotiviti.\n\nD: Wilful Misconduct or Gross Negligence by Cotiviti - The documents do not explicitly state indemnification for wilful misconduct or gross negligence, but this is a common basis for indemnification in many agreements.\n\nBased on typical indemnification clauses and the absence of specific information in the provided context, the most likely circumstance requiring Cotiviti to indemnify a client, such as ACA Health Benefits Fund, would be related to D: Wilful Misconduct or Gross Negligence by Cotiviti. This is a standard provision in many agreements, although it is not explicitly stated in the provided documents.\n\nTherefore, the correct answer is D: Wilful Misconduct or Gross Negligence by Cotiviti, based on common indemnification practices, despite the lack of explicit mention in the provided context.",
+    "latency_ms": 4168.47,
+    "client": "ACA Health Benefits Fund",
+    "document_type": "MSA",
+    "method": "RAG"
+  },
+  {
+    "id": "qa_24",
+    "question": "What restrictions are placed on the use of Confidential Information according to the NDA with 7-Eleven?",
+    "options": {
+      "A": "It must only be used for evaluating the Potential Transaction and cannot be disclosed without prior written consent.",
+      "B": "It can only be used for marketing purposes related to the Potential Transaction.",
+      "C": "It can be used for any commercial purpose as long as it remains confidential.",
+      "D": "It can be shared with any third party if they agree to confidentiality."
+    },
+    "correct_answer": "A",
+    "predicted_answer": "A",
+    "is_correct": true,
+    "response": "The correct answer is A: It must only be used for evaluating the Potential Transaction and cannot be disclosed without prior written consent.\n\nReasoning:\n\nThe NDA between 7-Eleven and the Vendor explicitly outlines the restrictions on the use of Confidential Information. According to the document, the Confidential Information is shared in connection with the evaluation of one or more potential transactions between 7-Eleven or one of its affiliates and the Vendor. The document states that each Party, as a Disclosing Party, is furnishing the other Party, as a Nondisclosing Party, with certain Confidential Information that is either not public or is confidential or proprietary in nature (see [2]).\n\nFurthermore, the NDA requires that each Party will return all Confidential Information to the Disclosing Party and destroy all related materials upon termination of the agreement, except for one archival copy retained by legal counsel (see [3]). This indicates that the use of the information is restricted to the purposes outlined in the agreement, specifically the evaluation of the Potential Transaction, and cannot be disclosed without prior written consent.\n\nThe document does not mention any permissions for using the information for marketing purposes, sharing it with third parties without consent, or using it for any commercial purpose beyond the scope of the Potential Transaction. Therefore, option A is the correct choice.",
+    "latency_ms": 3306.1,
+    "client": "7-Eleven",
+    "document_type": "NDA",
+    "method": "RAG"
+  },
+  {
+    "id": "qa_129",
+    "question": "What is the required procedure for managing user IDs and passwords according to the Aetna Life Insurance Company Addendum?",
+    "options": {
+      "A": "Passwords must be shared among users for efficiency.",
+      "B": "Usernames must be disabled or deleted within 24 hours of employee termination.",
+      "C": "Passwords must be changed every 30 days.",
+      "D": "Passwords must consist solely of dictionary words."
+    },
+    "correct_answer": "B",
+    "predicted_answer": "unknown",
+    "is_correct": false,
+    "response": "The context provided does not include specific information from the Aetna Life Insurance Company Addendum regarding the management of user IDs and passwords. Instead, it includes details from other documents related to access control and password policies, such as those from Humana and Lorica Health. \n\nHowever, based on the information from these documents, none of the options provided (A, B, C, or D) align with the described password policies. For example:\n\n- Option A: Passwords must be shared among users for efficiency. This is contrary to the best practices mentioned, which emphasize unique usernames and passwords for each user.\n- Option B: Usernames must be disabled or deleted within 24 hours of employee termination. While immediate termination of access is mentioned, the specific timeframe of 24 hours is not stated.\n- Option C: Passwords must be changed every 30 days. The documents mention a 90-day expiration period for passwords, not 30 days.\n- Option D: Passwords must consist solely of dictionary words. This contradicts the requirement that passwords should not contain words commonly found in a dictionary.\n\nTherefore, none of the options accurately reflect the password management procedures described in the context provided. The correct answer cannot be determined from the given information, as the specific requirements from the Aetna Life Insurance Company Addendum are not included.",
+    "latency_ms": 2355.15,
+    "client": "Aetna Life Insurance Company",
+    "document_type": "Addendum",
+    "method": "RAG"
+  },
+  {
+    "id": "qa_130",
+    "question": "What is the required timeframe to correct data extract problems according to the State-approved System Deficiency and Notification Process?",
+    "options": {
+      "A": "Within 10 business days",
+      "B": "Within 5 business days",
+      "C": "Within 3 business days",
+      "D": "Within 1 business day"
+    },
+    "correct_answer": "B",
+    "predicted_answer": "B",
+    "is_correct": true,
+    "response": "The correct answer is B: Within 5 business days.\n\nReasoning: According to the document [1] (Accenture - Cotiviti SubK Agmt), it states under AHC 16: \"Correct all data extract problems within five (5) business days of problem identification and notify the State of correction.\" This clearly specifies that the required timeframe to correct data extract problems is within five business days, aligning with option B.",
+    "latency_ms": 1404.49,
+    "client": "Accenture",
+    "document_type": "MSA",
+    "method": "RAG"
+  }
+
+]
